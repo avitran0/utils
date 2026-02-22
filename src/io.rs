@@ -92,6 +92,7 @@ pub trait ReadBytes: std::io::Read {
         Ok(buf)
     }
 
+    #[inline]
     fn read_value<T: Default>(&mut self) -> Result<T> {
         let mut value = T::default();
         let buf = core::slice::from_mut(&mut value);
