@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{BufWriter, Write as _},
+    io::{LineWriter, Write as _},
 };
 
 use parking_lot::Mutex;
@@ -8,16 +8,17 @@ use parking_lot::Mutex;
 pub use log::*;
 
 pub struct FileLogger {
-    writer: Mutex<BufWriter<File>>,
+    writer: Mutex<LineWriter<File>>,
     level: Level,
+    debug: bool,
 }
 
 impl FileLogger {
-    pub fn install(file_name: &str, level: Level) {
-        Self::new(file_name, level).unwrap().init();
+    pub fn install(file_name: &str, level: Level, debug: bool) {
+        Self::new(file_name, level, debug).unwrap().init();
     }
 
-    pub fn new(file_name: &str, level: Level) -> std::io::Result<Self> {
+    pub fn new(file_name: &str, level: Level, debug: bool) -> std::io::Result<Self> {
         let mut path = std::env::current_exe()?;
         path.pop();
         path.push(file_name);
@@ -26,10 +27,12 @@ impl FileLogger {
             .write(true)
             .truncate(true)
             .open(path)?;
+        let writer = Mutex::new(LineWriter::new(file));
 
         Ok(Self {
-            writer: Mutex::new(BufWriter::new(file)),
+            writer,
             level,
+            debug,
         })
     }
 
@@ -40,10 +43,22 @@ impl FileLogger {
     }
 
     pub fn write_log(&self, record: &log::Record) {
-        let message = format!("[{}] {}\n", record.level(), record.args());
         let mut writer = self.writer.lock();
-        let _ = writer.write_all(message.as_bytes());
-        let _ = writer.flush();
+        if self.debug
+            && let Some(file) = record.file()
+            && let Some(line) = record.line()
+        {
+            let _ = writeln!(
+                writer,
+                "[{}] [{}:{}] {}",
+                record.level(),
+                file,
+                line,
+                record.args()
+            );
+        } else {
+            let _ = writeln!(writer, "[{}] {}", record.level(), record.args());
+        }
     }
 }
 
