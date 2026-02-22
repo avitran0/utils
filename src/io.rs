@@ -91,6 +91,16 @@ pub trait ReadBytes: std::io::Read {
         self.read_exact(&mut buf)?;
         Ok(buf)
     }
+
+    fn read_value<T: Default>(&mut self) -> Result<T> {
+        let mut value = T::default();
+        let buf = core::slice::from_mut(&mut value);
+        let buf = unsafe {
+            core::slice::from_raw_parts_mut::<u8>(buf.as_mut_ptr().cast(), size_of::<T>())
+        };
+        self.read_exact(buf)?;
+        Ok(value)
+    }
 }
 
 impl<R: std::io::Read> ReadBytes for R {}
