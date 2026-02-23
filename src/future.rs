@@ -1,4 +1,5 @@
 use std::{
+    future::Future,
     sync::Arc,
     task::{Context, Poll, Wake, Waker},
     thread,
@@ -42,3 +43,5 @@ pub trait FutureExt: Future {
         })
     }
 }
+
+impl<F: Future + ?Sized> FutureExt for F {}
