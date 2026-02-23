@@ -1,38 +1,63 @@
 use std::{
     fs::{File, OpenOptions},
     io::{LineWriter, Write as _},
+    path::PathBuf,
 };
 
 use parking_lot::Mutex;
 
 pub use log::*;
 
-pub struct FileLogger {
-    writer: Mutex<LineWriter<File>>,
+pub struct LoggerOptions {
+    pub level: Level,
+    pub file: Option<PathBuf>,
+    pub stdout: bool,
+    pub debug: bool,
+}
+
+impl Default for LoggerOptions {
+    fn default() -> Self {
+        Self {
+            level: Level::Info,
+            file: None,
+            stdout: true,
+            debug: false,
+        }
+    }
+}
+
+pub struct Logger {
+    writer: Option<Mutex<LineWriter<File>>>,
     level: Level,
+    stdout: bool,
     debug: bool,
 }
 
-impl FileLogger {
-    pub fn install(file_name: &str, level: Level, debug: bool) {
-        Self::new(file_name, level, debug).unwrap().init();
+impl Logger {
+    pub fn install(options: LoggerOptions) {
+        Self::new(options).unwrap().init();
     }
 
-    pub fn new(file_name: &str, level: Level, debug: bool) -> std::io::Result<Self> {
-        let mut path = std::env::current_exe()?;
-        path.pop();
-        path.push(file_name);
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(path)?;
-        let writer = Mutex::new(LineWriter::new(file));
+    pub fn new(options: LoggerOptions) -> std::io::Result<Self> {
+        let writer = if let Some(file) = options.file {
+            let mut path = std::env::current_exe()?;
+            path.pop();
+            path.push(file);
+            let file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(path)?;
+            Some(Mutex::new(LineWriter::new(file)))
+        } else {
+            None
+        };
 
         Ok(Self {
             writer,
-            level,
-            debug,
+            stdout: options.stdout,
+            level: options.level,
+            debug: options.debug,
         })
     }
 
@@ -42,27 +67,35 @@ impl FileLogger {
         log::set_max_level(max_level);
     }
 
-    pub fn write_log(&self, record: &log::Record) {
-        let mut writer = self.writer.lock();
-        if self.debug
-            && let Some(file) = record.file()
-            && let Some(line) = record.line()
+    fn write_log(&self, record: &Record) {
+        if self.stdout {
+            self.write(record, &mut std::io::stdout());
+        }
+        if let Some(writer) = &self.writer {
+            let mut writer = writer.lock();
+            self.write(record, writer.get_mut());
+        }
+    }
+
+    fn write(&self, record: &Record, writer: &mut impl std::io::Write) {
+        let _ = if self.debug
+            && let (Some(file), Some(line)) = (record.file(), record.line())
         {
-            let _ = writeln!(
+            writeln!(
                 writer,
                 "[{}] [{}:{}] {}",
                 record.level(),
                 file,
                 line,
                 record.args()
-            );
+            )
         } else {
-            let _ = writeln!(writer, "[{}] {}", record.level(), record.args());
-        }
+            writeln!(writer, "[{}] {}", record.level(), record.args())
+        };
     }
 }
 
-impl Log for FileLogger {
+impl Log for Logger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
         metadata.level() <= self.level
     }
@@ -74,6 +107,8 @@ impl Log for FileLogger {
     }
 
     fn flush(&self) {
-        let _ = self.writer.lock().flush();
+        if let Some(writer) = &self.writer {
+            let _ = writer.lock().flush();
+        }
     }
 }
