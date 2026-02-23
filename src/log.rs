@@ -1,7 +1,7 @@
 use std::{
     fs::{File, OpenOptions},
     io::{LineWriter, Write as _},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use parking_lot::Mutex;
@@ -23,6 +23,28 @@ impl Default for LoggerOptions {
             stdout: true,
             debug: false,
         }
+    }
+}
+
+impl LoggerOptions {
+    pub fn level(mut self, level: Level) -> Self {
+        self.level = level;
+        self
+    }
+
+    pub fn file(mut self, file: impl AsRef<Path>) -> Self {
+        self.file = Some(file.as_ref().to_path_buf());
+        self
+    }
+
+    pub fn stdout(mut self, stdout: bool) -> Self {
+        self.stdout = stdout;
+        self
+    }
+
+    pub fn debug(mut self, debug: bool) -> Self {
+        self.debug = debug;
+        self
     }
 }
 
