@@ -145,7 +145,7 @@ fn bitset_index(index: usize) -> (usize, usize) {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::{BitSet, FixedBitSet};
 
     #[test]

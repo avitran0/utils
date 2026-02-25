@@ -45,3 +45,19 @@ pub trait FutureExt: Future {
 }
 
 impl<F: Future + ?Sized> FutureExt for F {}
+
+#[cfg(test)]
+mod test {
+    use crate::future::FutureExt;
+
+    #[test]
+    fn block() {
+        const VALUE: i32 = 5;
+
+        async fn work() -> i32 {
+            VALUE
+        }
+
+        assert_eq!(work().block(), VALUE);
+    }
+}

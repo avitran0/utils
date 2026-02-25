@@ -41,52 +41,62 @@ impl<T> Channel<T> {
     }
 }
 
-#[test]
-fn test_channel_send_receive() {
-    let (left, right) = Channel::new();
+#[cfg(test)]
+mod test {
+    use std::{
+        sync::mpsc::{RecvTimeoutError, TryRecvError},
+        time::Duration,
+    };
 
-    let handle = std::thread::spawn(move || {
-        right.send(42).unwrap();
-        assert_eq!(right.receive(), Ok(100));
-    });
+    use super::Channel;
 
-    assert_eq!(left.receive(), Ok(42));
-    assert_eq!(left.send(100), Ok(()));
+    #[test]
+    fn test_channel_send_receive() {
+        let (left, right) = Channel::new();
 
-    handle.join().unwrap();
-}
+        let handle = std::thread::spawn(move || {
+            right.send(42).unwrap();
+            assert_eq!(right.receive(), Ok(100));
+        });
 
-#[test]
-fn test_channel_timeout() {
-    let (left, right) = Channel::new();
+        assert_eq!(left.receive(), Ok(42));
+        assert_eq!(left.send(100), Ok(()));
 
-    assert!(left.receive_timeout(Duration::from_millis(100)) == Err(RecvTimeoutError::Timeout));
+        handle.join().unwrap();
+    }
 
-    assert_eq!(right.send(1), Ok(()));
-    assert_eq!(left.receive_timeout(Duration::from_millis(100)), Ok(1));
-}
+    #[test]
+    fn test_channel_timeout() {
+        let (left, right) = Channel::new();
 
-#[test]
-fn test_channel_try_receive() {
-    let (left, right) = Channel::new();
+        assert!(left.receive_timeout(Duration::from_millis(100)) == Err(RecvTimeoutError::Timeout));
 
-    assert!(left.try_receive() == Err(TryRecvError::Empty));
+        assert_eq!(right.send(1), Ok(()));
+        assert_eq!(left.receive_timeout(Duration::from_millis(100)), Ok(1));
+    }
 
-    assert_eq!(right.send(1), Ok(()));
-    assert_eq!(left.try_receive(), Ok(1));
-}
+    #[test]
+    fn test_channel_try_receive() {
+        let (left, right) = Channel::new();
 
-#[test]
-fn test_channel_multiple_messages() {
-    let (left, right) = Channel::new();
+        assert!(left.try_receive() == Err(TryRecvError::Empty));
 
-    std::thread::spawn(move || {
+        assert_eq!(right.send(1), Ok(()));
+        assert_eq!(left.try_receive(), Ok(1));
+    }
+
+    #[test]
+    fn test_channel_multiple_messages() {
+        let (left, right) = Channel::new();
+
+        std::thread::spawn(move || {
+            for i in 0..5 {
+                assert_eq!(right.send(i), Ok(()));
+            }
+        });
+
         for i in 0..5 {
-            assert_eq!(right.send(i), Ok(()));
+            assert_eq!(left.receive().unwrap(), i);
         }
-    });
-
-    for i in 0..5 {
-        assert_eq!(left.receive().unwrap(), i);
     }
 }
