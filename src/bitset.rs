@@ -19,11 +19,15 @@ impl BitSet {
     }
 
     pub fn capacity(&self) -> usize {
+        self.0.capacity() * BITS_PER_BYTE
+    }
+
+    pub fn len(&self) -> usize {
         self.0.len() * BITS_PER_BYTE
     }
 
     pub fn set(&mut self, index: usize, value: bool) {
-        if index >= self.capacity() {
+        if index >= self.len() {
             self.0.resize(index / BITS_PER_BYTE + 1, 0);
         }
 
@@ -37,7 +41,7 @@ impl BitSet {
     }
 
     pub fn get(&self, index: usize) -> bool {
-        assert!(index < self.capacity(), "Index out of bounds");
+        assert!(index < self.len(), "Index out of bounds");
 
         let (byte, bit) = bitset_index(index);
 
@@ -45,7 +49,7 @@ impl BitSet {
     }
 
     pub fn get_checked(&self, index: usize) -> Option<bool> {
-        if index >= self.capacity() {
+        if index >= self.len() {
             return None;
         }
 
@@ -138,4 +142,125 @@ fn bytes_for_bits(bits: usize) -> usize {
 
 fn bitset_index(index: usize) -> (usize, usize) {
     (index / BITS_PER_BYTE, index % BITS_PER_BYTE)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BitSet, FixedBitSet};
+
+    #[test]
+    fn bitset_set_get_roundtrip() {
+        let mut bitset = BitSet::new();
+
+        bitset.set(0, true);
+        bitset.set(7, true);
+        bitset.set(8, true);
+        bitset.set(15, false);
+
+        assert!(bitset.get(0));
+        assert!(bitset.get(7));
+        assert!(bitset.get(8));
+        assert!(!bitset.get(15));
+    }
+
+    #[test]
+    fn bitset_get_checked_bounds() {
+        let mut bitset = BitSet::new();
+
+        assert_eq!(bitset.get_checked(0), None);
+
+        bitset.set(9, true);
+        assert_eq!(bitset.get_checked(9), Some(true));
+        assert_eq!(bitset.get_checked(10), Some(false));
+        assert_eq!(bitset.get_checked(16), None);
+    }
+
+    #[test]
+    fn bitset_clear_and_is_empty() {
+        let mut bitset = BitSet::new();
+
+        assert!(bitset.is_empty());
+
+        bitset.set(3, true);
+        assert!(!bitset.is_empty());
+
+        bitset.clear();
+        assert!(bitset.is_empty());
+    }
+
+    #[test]
+    fn bitset_iter_matches_bits() {
+        let mut bitset = BitSet::new();
+
+        bitset.set(0, true);
+        bitset.set(3, true);
+        bitset.set(8, true);
+
+        let values: Vec<bool> = bitset.iter().collect();
+
+        assert_eq!(values.len(), bitset.len());
+        assert!(values[0]);
+        assert!(!values[1]);
+        assert!(values[3]);
+        assert!(values[8]);
+    }
+
+    #[test]
+    fn bitset_with_capacity_is_in_bits() {
+        let bitset = BitSet::with_capacity(9);
+
+        assert_eq!(bitset.capacity(), 16);
+        assert!(bitset.is_empty());
+    }
+
+    #[test]
+    fn fixed_bitset_set_get_roundtrip() {
+        let mut bitset: FixedBitSet<2> = FixedBitSet::new();
+
+        bitset.set(0, true);
+        bitset.set(9, true);
+
+        assert!(bitset.get(0));
+        assert!(bitset.get(9));
+        assert!(!bitset.get(15));
+    }
+
+    #[test]
+    fn fixed_bitset_get_checked_bounds() {
+        let mut bitset: FixedBitSet<2> = FixedBitSet::new();
+
+        assert_eq!(bitset.get_checked(16), None);
+
+        bitset.set(10, true);
+        assert_eq!(bitset.get_checked(10), Some(true));
+        assert_eq!(bitset.get_checked(11), Some(false));
+    }
+
+    #[test]
+    fn fixed_bitset_clear_and_is_empty() {
+        let mut bitset: FixedBitSet<1> = FixedBitSet::new();
+
+        assert!(bitset.is_empty());
+
+        bitset.set(4, true);
+        assert!(!bitset.is_empty());
+
+        bitset.clear();
+        assert!(bitset.is_empty());
+    }
+
+    #[test]
+    fn fixed_bitset_iter_matches_bits() {
+        let mut bitset: FixedBitSet<1> = FixedBitSet::new();
+
+        bitset.set(2, true);
+        bitset.set(7, true);
+
+        let values: Vec<bool> = bitset.iter().collect();
+
+        assert_eq!(values.len(), 8);
+        assert!(values[2]);
+        assert!(values[7]);
+        assert!(!values[0]);
+    }
 }
