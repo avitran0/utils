@@ -13,6 +13,7 @@ pub struct LoggerOptions {
     pub level: Level,
     pub file: Option<PathBuf>,
     pub stdout: bool,
+    pub module: Option<String>,
     pub debug: bool,
 }
 
@@ -22,6 +23,7 @@ impl Default for LoggerOptions {
             level: Level::Info,
             file: None,
             stdout: true,
+            module: None,
             debug: false,
         }
     }
@@ -43,6 +45,11 @@ impl LoggerOptions {
         self
     }
 
+    pub fn module(mut self, module: &str) -> Self {
+        self.module = Some(module.to_owned());
+        self
+    }
+
     pub fn debug(mut self, debug: bool) -> Self {
         self.debug = debug;
         self
@@ -53,6 +60,7 @@ pub struct Logger {
     writer: Option<Mutex<LineWriter<File>>>,
     level: Level,
     stdout: bool,
+    module: Option<String>,
     debug: bool,
 }
 
@@ -90,6 +98,7 @@ impl Logger {
             writer,
             stdout: options.stdout,
             level,
+            module: options.module,
             debug: options.debug,
         })
     }
@@ -101,6 +110,13 @@ impl Logger {
     }
 
     fn write_log(&self, record: &Record) {
+        if let Some(module) = &self.module
+            && let Some(rec_module) = record.module_path()
+            && !rec_module.starts_with(module)
+        {
+            return;
+        }
+        
         if self.stdout {
             self.write(record, &mut std::io::stdout());
         }
