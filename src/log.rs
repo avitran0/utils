@@ -109,8 +109,9 @@ impl Logger {
 
             let file = OpenOptions::new()
                 .create(true)
-                .append(true)
+                .write(true)
                 .truncate(options.truncate)
+                .append(!options.truncate)
                 .open(file_path)?;
 
             Some(ParkingMutex::new(LineWriter::new(file)))
@@ -130,12 +131,11 @@ impl Logger {
     }
 
     fn write_log(&self, record: &Record) {
-        if let Some(module) = &self.options.module {
-            if let Some(rec_module) = record.module_path() {
-                if !rec_module.starts_with(module) {
-                    return;
-                }
-            }
+        if let Some(module) = &self.options.module
+            && let Some(rec_module) = record.module_path()
+            && !rec_module.starts_with(module)
+        {
+            return;
         }
 
         if self.options.stdout {

@@ -99,7 +99,7 @@ pub trait ReadBytes: std::io::Read {
     }
 
     #[inline]
-    unsafe fn read_value<T: Default + Copy>(&mut self) -> Result<T> {
+    fn read_value<T: Default + Copy>(&mut self) -> Result<T> {
         let mut value = T::default();
         let buf = core::slice::from_mut(&mut value);
         let buf = unsafe {
@@ -159,7 +159,7 @@ pub trait WriteBytes: std::io::Write {
     }
 
     #[inline]
-    unsafe fn write_value<T: Copy>(&mut self, value: &T) -> Result<()> {
+    fn write_value<T: Copy>(&mut self, value: &T) -> Result<()> {
         let buf = core::slice::from_ref(value);
         let buf = unsafe { core::slice::from_raw_parts::<u8>(buf.as_ptr().cast(), size_of::<T>()) };
         self.write_all(buf)
