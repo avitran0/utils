@@ -76,9 +76,9 @@ impl Logger {
             None
         };
 
-        let level_env = std::env::args()
-            .find(|arg| arg.starts_with("RUST_LOG="))
-            .map(|arg| arg.split_once('=').unwrap().1.to_owned());
+        let level_env = std::env::var("RUST_LOG")
+            .map(|arg| arg.split_once('=').unwrap().1.to_owned())
+            .ok();
         let level = if let Some(level_env) = &level_env {
             match Level::from_str(level_env) {
                 Ok(level) => level,
