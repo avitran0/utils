@@ -2,6 +2,7 @@ use std::{
     fs::{File, OpenOptions},
     io::{LineWriter, Write as _},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use parking_lot::Mutex;
@@ -75,10 +76,22 @@ impl Logger {
             None
         };
 
+        let level_env = std::env::args()
+            .find(|arg| arg.starts_with("LOG="))
+            .map(|arg| arg.split_once('=').unwrap().1.to_owned());
+        let level = if let Some(level_env) = &level_env {
+            match Level::from_str(level_env) {
+                Ok(level) => level,
+                Err(_) => options.level,
+            }
+        } else {
+            options.level
+        };
+
         Ok(Self {
             writer,
             stdout: options.stdout,
-            level: options.level,
+            level,
             debug: options.debug,
         })
     }
