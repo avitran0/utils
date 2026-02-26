@@ -54,14 +54,27 @@ impl LoggerOptions {
         self.debug = debug;
         self
     }
+
+    fn runtime(self, level: Level) -> RuntimeOptions {
+        RuntimeOptions {
+            level,
+            stdout: self.stdout,
+            module: self.module,
+            debug: self.debug,
+        }
+    }
 }
 
-pub struct Logger {
-    writer: Option<Mutex<LineWriter<File>>>,
+struct RuntimeOptions {
     level: Level,
     stdout: bool,
     module: Option<String>,
     debug: bool,
+}
+
+pub struct Logger {
+    writer: Option<Mutex<LineWriter<File>>>,
+    options: RuntimeOptions,
 }
 
 impl Logger {
@@ -70,7 +83,7 @@ impl Logger {
     }
 
     pub fn new(options: LoggerOptions) -> std::io::Result<Self> {
-        let writer = if let Some(file) = options.file {
+        let writer = if let Some(file) = &options.file {
             let mut path = std::env::current_exe()?;
             path.pop();
             path.push(file);
@@ -94,30 +107,26 @@ impl Logger {
             options.level
         };
 
-        Ok(Self {
-            writer,
-            stdout: options.stdout,
-            level,
-            module: options.module,
-            debug: options.debug,
-        })
+        let options = options.runtime(level);
+
+        Ok(Self { writer, options })
     }
 
     pub fn init(self) {
-        let max_level = self.level.to_level_filter();
+        let max_level = self.options.level.to_level_filter();
         log::set_boxed_logger(Box::new(self)).unwrap();
         log::set_max_level(max_level);
     }
 
     fn write_log(&self, record: &Record) {
-        if let Some(module) = &self.module
+        if let Some(module) = &self.options.module
             && let Some(rec_module) = record.module_path()
             && !rec_module.starts_with(module)
         {
             return;
         }
-        
-        if self.stdout {
+
+        if self.options.stdout {
             self.write(record, &mut std::io::stdout());
         }
         if let Some(writer) = &self.writer {
@@ -127,7 +136,7 @@ impl Logger {
     }
 
     fn write(&self, record: &Record, writer: &mut impl std::io::Write) {
-        let _ = if self.debug
+        let _ = if self.options.debug
             && let (Some(file), Some(line)) = (record.file(), record.line())
         {
             writeln!(
@@ -146,7 +155,7 @@ impl Logger {
 
 impl Log for Logger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= self.level
+        metadata.level() <= self.options.level
     }
 
     fn log(&self, record: &log::Record) {
