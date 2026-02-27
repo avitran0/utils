@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use parking_lot::Mutex as ParkingMutex;
+use parking_lot::Mutex;
 
 pub use log::*;
 
@@ -73,7 +73,7 @@ impl LoggerOptions {
 
 /// A simple logger implementation.
 pub struct Logger {
-    writer: Option<ParkingMutex<LineWriter<File>>>,
+    writer: Option<Mutex<LineWriter<File>>>,
     options: LoggerOptions,
 }
 
@@ -88,7 +88,6 @@ impl Logger {
 
     /// Creates a new Logger instance.
     pub fn new(mut options: LoggerOptions) -> io::Result<Self> {
-        // Handle RUST_LOG environment variable
         if let Ok(level_env) = std::env::var("RUST_LOG")
             && let Ok(level) = Level::from_str(&level_env)
         {
@@ -96,25 +95,25 @@ impl Logger {
         }
 
         let writer = if let Some(file_path) = &options.file {
-            // Use current directory for relative paths, or absolute path as is.
-            // The original code used current_exe(), which is non-standard for logs.
-            // We'll stick to standard file opening which respects CWD.
-            // If the user wants current_exe relative, they should construct the path themselves.
-            // However, to be safe and "improve", standard CWD is better.
+            let exe_path = std::env::current_exe()?;
+            let exe_parent = exe_path
+                .parent()
+                .ok_or_else(|| io::Error::other("Executable path has no parent directory"))?;
 
-            // Ensure parent directory exists?
-            if let Some(parent) = file_path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
+            let file_name = file_path
+                .file_name()
+                .ok_or_else(|| io::Error::other("Invalid file path"))?;
+
+            let log_path = exe_parent.join(file_name);
 
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .truncate(options.truncate)
                 .append(!options.truncate)
-                .open(file_path)?;
+                .open(log_path)?;
 
-            Some(ParkingMutex::new(LineWriter::new(file)))
+            Some(Mutex::new(LineWriter::new(file)))
         } else {
             None
         };
