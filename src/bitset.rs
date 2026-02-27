@@ -12,10 +12,12 @@ impl BitSet {
         Self(Vec::with_capacity(bytes_for_bits(capacity_bits)))
     }
 
+    pub fn from_vec(vec: Vec<u8>) -> Self {
+        Self(vec)
+    }
+
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        let mut inner = Vec::with_capacity(bytes.len());
-        inner.copy_from_slice(bytes);
-        Self(inner)
+        Self(bytes.to_vec())
     }
 
     pub fn capacity(&self) -> usize {
