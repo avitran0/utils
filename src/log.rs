@@ -52,6 +52,12 @@ impl LoggerOptions {
         self
     }
 
+    /// Enables or disables log file truncation
+    pub fn truncate(mut self, truncate: bool) -> Self {
+        self.truncate = truncate;
+        self
+    }
+
     /// Enables or disables stdout logging.
     pub fn stdout(mut self, stdout: bool) -> Self {
         self.stdout = stdout;
