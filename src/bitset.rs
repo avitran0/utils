@@ -112,100 +112,6 @@ impl BitSet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct FixedBitSet<const BYTES: usize>([u8; BYTES]);
-
-impl<const BYTES: usize> FixedBitSet<BYTES> {
-    const CAPACITY: usize = BYTES * BITS_PER_BYTE;
-
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn set(&mut self, index: usize, value: bool) {
-        assert!(index < Self::CAPACITY, "Index out of bounds");
-
-        let (byte, bit) = bitset_index(index);
-
-        if value {
-            self.0[byte] |= 1 << bit;
-        } else {
-            self.0[byte] &= !(1 << bit);
-        }
-    }
-
-    pub fn set_range(&mut self, range: std::ops::Range<usize>, value: bool) {
-        if range.is_empty() {
-            return;
-        }
-
-        assert!(range.end <= Self::CAPACITY, "Index out of bounds");
-
-        for index in range {
-            let (byte, bit) = bitset_index(index);
-            if value {
-                self.0[byte] |= 1 << bit;
-            } else {
-                self.0[byte] &= !(1 << bit);
-            }
-        }
-    }
-
-    pub fn get(&self, index: usize) -> bool {
-        assert!(index < Self::CAPACITY, "Index out of bounds");
-
-        let (byte, bit) = bitset_index(index);
-
-        (self.0[byte] >> bit) & 1 == 1
-    }
-
-    pub fn get_checked(&self, index: usize) -> Option<bool> {
-        if index >= Self::CAPACITY {
-            return None;
-        }
-
-        let (byte, bit) = bitset_index(index);
-
-        Some((self.0[byte] >> bit) & 1 == 1)
-    }
-
-    pub fn clear(&mut self) {
-        self.0.fill(0);
-    }
-
-    pub fn count_ones(&self) -> usize {
-        self.0.iter().map(|byte| byte.count_ones() as usize).sum()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.iter().all(|byte| *byte == 0)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = bool> {
-        self.0
-            .iter()
-            .flat_map(|byte| (0..BITS_PER_BYTE).map(move |bit| (byte >> bit) & 1 == 1))
-    }
-
-    pub fn iter_ones(&self) -> impl Iterator<Item = usize> + '_ {
-        self.0.iter().enumerate().flat_map(|(byte_index, byte)| {
-            (0..BITS_PER_BYTE).filter_map(move |bit| {
-                if (byte >> bit) & 1 == 1 {
-                    Some(byte_index * BITS_PER_BYTE + bit)
-                } else {
-                    None
-                }
-            })
-        })
-    }
-}
-
-impl<const BYTES: usize> Default for FixedBitSet<BYTES> {
-    fn default() -> Self {
-        Self([0; BYTES])
-    }
-}
-
 fn bytes_for_bits(bits: usize) -> usize {
     bits.div_ceil(BITS_PER_BYTE)
 }
@@ -216,7 +122,7 @@ fn bitset_index(index: usize) -> (usize, usize) {
 
 #[cfg(test)]
 mod test {
-    use super::{BitSet, FixedBitSet};
+    use super::BitSet;
 
     #[test]
     fn bitset_set_get_roundtrip() {
@@ -304,78 +210,5 @@ mod test {
 
         assert_eq!(bitset.capacity(), 16);
         assert!(bitset.is_empty());
-    }
-
-    #[test]
-    fn fixed_bitset_set_get_roundtrip() {
-        let mut bitset: FixedBitSet<2> = FixedBitSet::new();
-
-        bitset.set(0, true);
-        bitset.set(9, true);
-
-        assert!(bitset.get(0));
-        assert!(bitset.get(9));
-        assert!(!bitset.get(15));
-    }
-
-    #[test]
-    fn fixed_bitset_get_checked_bounds() {
-        let mut bitset: FixedBitSet<2> = FixedBitSet::new();
-
-        assert_eq!(bitset.get_checked(16), None);
-
-        bitset.set(10, true);
-        assert_eq!(bitset.get_checked(10), Some(true));
-        assert_eq!(bitset.get_checked(11), Some(false));
-    }
-
-    #[test]
-    fn fixed_bitset_clear_and_is_empty() {
-        let mut bitset: FixedBitSet<1> = FixedBitSet::new();
-
-        assert!(bitset.is_empty());
-
-        bitset.set(4, true);
-        assert!(!bitset.is_empty());
-
-        bitset.clear();
-        assert!(bitset.is_empty());
-    }
-
-    #[test]
-    fn fixed_bitset_iter_matches_bits() {
-        let mut bitset: FixedBitSet<1> = FixedBitSet::new();
-
-        bitset.set(2, true);
-        bitset.set(7, true);
-
-        let values: Vec<bool> = bitset.iter().collect();
-
-        assert_eq!(values.len(), 8);
-        assert!(values[2]);
-        assert!(values[7]);
-        assert!(!values[0]);
-    }
-
-    #[test]
-    fn fixed_bitset_set_range_and_count() {
-        let mut bitset: FixedBitSet<1> = FixedBitSet::new();
-
-        bitset.set_range(1..4, true);
-        assert_eq!(bitset.count_ones(), 3);
-        assert!(bitset.get(1));
-        assert!(!bitset.get(4));
-    }
-
-    #[test]
-    fn fixed_bitset_iter_ones_reports_set_bits() {
-        let mut bitset: FixedBitSet<2> = FixedBitSet::new();
-
-        bitset.set(0, true);
-        bitset.set(7, true);
-        bitset.set(12, true);
-
-        let indices: Vec<usize> = bitset.iter_ones().collect();
-        assert_eq!(indices, vec![0, 7, 12]);
     }
 }

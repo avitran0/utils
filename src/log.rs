@@ -130,8 +130,8 @@ impl Logger {
     /// Initializes the logger.
     pub fn init(self) -> Result<(), SetLoggerError> {
         let max_level = self.options.level.to_level_filter();
-        log::set_boxed_logger(Box::new(self))?;
-        log::set_max_level(max_level);
+        set_boxed_logger(Box::new(self))?;
+        set_max_level(max_level);
         Ok(())
     }
 
@@ -144,7 +144,7 @@ impl Logger {
         }
 
         if self.options.stdout {
-            let stdout = std::io::stdout();
+            let stdout = io::stdout();
             let mut handle = stdout.lock();
             self.write(record, &mut handle);
         }
@@ -190,6 +190,6 @@ impl Log for Logger {
         if let Some(writer) = &self.writer {
             let _ = writer.lock().flush();
         }
-        let _ = std::io::stdout().flush();
+        let _ = io::stdout().flush();
     }
 }
