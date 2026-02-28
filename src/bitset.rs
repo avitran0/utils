@@ -62,7 +62,10 @@ impl BitSet {
     }
 
     pub fn get(&self, index: usize) -> bool {
-        assert!(index < self.len(), "Index out of bounds");
+        // assert!(index < self.len(), "Index out of bounds");
+        if index >= self.len() {
+            return false;
+        }
 
         let (byte, bit) = bitset_index(index);
 
