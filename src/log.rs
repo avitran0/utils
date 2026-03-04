@@ -101,16 +101,20 @@ impl Logger {
         }
 
         let writer = if let Some(file_path) = &options.file {
-            let exe_path = std::env::current_exe()?;
-            let exe_parent = exe_path
-                .parent()
-                .ok_or_else(|| io::Error::other("Executable path has no parent directory"))?;
+            let log_path = if file_path.is_absolute() {
+                file_path
+            } else {
+                let exe_path = std::env::current_exe()?;
+                let exe_parent = exe_path
+                    .parent()
+                    .ok_or_else(|| io::Error::other("Executable path has no parent directory"))?;
 
-            let file_name = file_path
-                .file_name()
-                .ok_or_else(|| io::Error::other("Invalid file path"))?;
+                let file_name = file_path
+                    .file_name()
+                    .ok_or_else(|| io::Error::other("Invalid file path"))?;
 
-            let log_path = exe_parent.join(file_name);
+                &exe_parent.join(file_name)
+            };
 
             let file = OpenOptions::new()
                 .create(true)
