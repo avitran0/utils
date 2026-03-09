@@ -61,18 +61,7 @@ impl BitSet {
         }
     }
 
-    pub fn get(&self, index: usize) -> bool {
-        // assert!(index < self.len(), "Index out of bounds");
-        if index >= self.len() {
-            return false;
-        }
-
-        let (byte, bit) = bitset_index(index);
-
-        (self.0[byte] >> bit) & 1 == 1
-    }
-
-    pub fn get_checked(&self, index: usize) -> Option<bool> {
+    pub fn get(&self, index: usize) -> Option<bool> {
         if index >= self.len() {
             return None;
         }
@@ -80,6 +69,14 @@ impl BitSet {
         let (byte, bit) = bitset_index(index);
 
         Some((self.0[byte] >> bit) & 1 == 1)
+    }
+
+    pub fn get_unchecked(&self, index: usize) -> bool {
+        assert!(index < self.len(), "Index out of bounds");
+
+        let (byte, bit) = bitset_index(index);
+
+        (self.0[byte] >> bit) & 1 == 1
     }
 
     pub fn clear(&mut self) {
@@ -136,22 +133,22 @@ mod test {
         bitset.set(8, true);
         bitset.set(15, false);
 
-        assert!(bitset.get(0));
-        assert!(bitset.get(7));
-        assert!(bitset.get(8));
-        assert!(!bitset.get(15));
+        assert_eq!(bitset.get(0), Some(true));
+        assert_eq!(bitset.get(7), Some(true));
+        assert_eq!(bitset.get(8), Some(true));
+        assert_eq!(bitset.get(15), Some(false));
     }
 
     #[test]
     fn bitset_get_checked_bounds() {
         let mut bitset = BitSet::new();
 
-        assert_eq!(bitset.get_checked(0), None);
+        assert_eq!(bitset.get(0), None);
 
         bitset.set(9, true);
-        assert_eq!(bitset.get_checked(9), Some(true));
-        assert_eq!(bitset.get_checked(10), Some(false));
-        assert_eq!(bitset.get_checked(16), None);
+        assert_eq!(bitset.get(9), Some(true));
+        assert_eq!(bitset.get(10), Some(false));
+        assert_eq!(bitset.get(16), None);
     }
 
     #[test]
@@ -190,9 +187,9 @@ mod test {
 
         bitset.set_range(2..6, true);
         assert_eq!(bitset.count_ones(), 4);
-        assert!(bitset.get(2));
-        assert!(bitset.get(5));
-        assert!(!bitset.get(6));
+        assert_eq!(bitset.get(2), Some(true));
+        assert_eq!(bitset.get(5), Some(true));
+        assert_eq!(bitset.get(6), Some(false));
     }
 
     #[test]
