@@ -2,6 +2,8 @@ use std::{fmt::Display, ops::Range};
 
 const BITS_PER_BYTE: usize = 8;
 
+/// Dynamic `BitSet` type, with an underlying [`Vec<u8>`].
+/// Will grow to accomodate set and get requests.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct BitSet(Vec<u8>);
 
@@ -115,8 +117,10 @@ impl From<BitSet> for Vec<u8> {
     }
 }
 
+/// Fixed `BitSet` type, with an underlying `[u8; BYTES]`.
+/// Will panic if trying to set indices out of bounds.
 #[repr(C)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FixedBitSet<const BYTES: usize>([u8; BYTES]);
 
 impl<const BYTES: usize> FixedBitSet<BYTES> {

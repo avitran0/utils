@@ -41,36 +41,42 @@ impl Default for LoggerOptions {
 
 impl LoggerOptions {
     /// Sets the logging level.
+    #[must_use]
     pub fn level(mut self, level: Level) -> Self {
         self.level = level;
         self
     }
 
     /// Sets the log file path.
+    #[must_use]
     pub fn file(mut self, file: impl AsRef<Path>) -> Self {
         self.file = Some(file.as_ref().to_path_buf());
         self
     }
 
-    /// Enables or disables log file truncation
+    /// Enables or disables log file truncation.
+    #[must_use]
     pub fn truncate(mut self, truncate: bool) -> Self {
         self.truncate = truncate;
         self
     }
 
     /// Enables or disables stdout logging.
+    #[must_use]
     pub fn stdout(mut self, stdout: bool) -> Self {
         self.stdout = stdout;
         self
     }
 
     /// Sets a module filter.
+    #[must_use]
     pub fn module(mut self, module: &str) -> Self {
         self.module = Some(module.to_owned());
         self
     }
 
     /// Enables or disables debug mode.
+    #[must_use]
     pub fn debug(mut self, debug: bool) -> Self {
         self.debug = debug;
         self
