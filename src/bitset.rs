@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::Range};
 
 const BITS_PER_BYTE: usize = 8;
 
@@ -14,20 +14,32 @@ impl BitSet {
         Self(Vec::with_capacity(bytes_for_bits(capacity_bits)))
     }
 
-    pub fn from_vec(vec: Vec<u8>) -> Self {
-        Self(vec)
+    pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Self {
+        Self(bytes.into())
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self(bytes.to_vec())
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
     }
 
-    pub fn capacity(&self) -> usize {
-        self.0.capacity() * BITS_PER_BYTE
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.0
     }
 
-    pub fn len(&self) -> usize {
-        len(&self.0)
+    pub fn byte_len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn bit_len(&self) -> usize {
+        bit_len(self.byte_len())
+    }
+
+    pub fn byte_capacity(&self) -> usize {
+        self.0.capacity()
+    }
+
+    pub fn bit_capacity(&self) -> usize {
+        bit_len(self.byte_capacity())
     }
 
     pub fn get(&self, index: usize) -> Option<bool> {
@@ -35,30 +47,19 @@ impl BitSet {
     }
 
     pub fn set(&mut self, index: usize, value: bool) {
-        if index >= self.len() {
+        if index >= self.bit_len() {
             self.0.resize(index / BITS_PER_BYTE + 1, 0);
         }
 
         set(&mut self.0, index, value);
     }
 
-    pub fn set_range(&mut self, range: std::ops::Range<usize>, value: bool) {
-        if range.is_empty() {
-            return;
-        }
-
-        if range.end > self.len() {
+    pub fn set_range(&mut self, range: Range<usize>, value: bool) {
+        if range.end > self.bit_len() {
             self.0.resize(bytes_for_bits(range.end), 0);
         }
 
-        for index in range {
-            let (byte, bit) = bitset_index(index);
-            if value {
-                self.0[byte] |= 1 << bit;
-            } else {
-                self.0[byte] &= !(1 << bit);
-            }
-        }
+        set_range(&mut self.0, range, value);
     }
 
     pub fn clear(&mut self) {
@@ -69,8 +70,8 @@ impl BitSet {
         count_ones(&self.0)
     }
 
-    pub fn is_empty(&self) -> bool {
-        is_empty(&self.0)
+    pub fn is_zeroed(&self) -> bool {
+        is_zeroed(&self.0)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = bool> {
@@ -97,29 +98,28 @@ impl<const BYTES: usize> FixedBitSet<BYTES> {
         Self(bytes)
     }
 
-    pub fn len(&self) -> usize {
-        len(&self.0)
+    pub fn as_bytes(&self) -> &[u8; BYTES] {
+        &self.0
+    }
+
+    pub fn into_bytes(self) -> [u8; BYTES] {
+        self.0
+    }
+
+    pub const fn byte_len(&self) -> usize {
+        BYTES
+    }
+
+    pub const fn bit_len(&self) -> usize {
+        BYTES * BITS_PER_BYTE
     }
 
     pub fn set(&mut self, index: usize, value: bool) {
         set(&mut self.0, index, value);
     }
 
-    pub fn set_range(&mut self, range: std::ops::Range<usize>, value: bool) {
-        if range.is_empty() {
-            return;
-        }
-
-        assert!(range.end < self.len(), "Index out of bounds");
-
-        for index in range {
-            let (byte, bit) = bitset_index(index);
-            if value {
-                self.0[byte] |= 1 << bit;
-            } else {
-                self.0[byte] &= !(1 << bit);
-            }
-        }
+    pub fn set_range(&mut self, range: Range<usize>, value: bool) {
+        set_range(&mut self.0, range, value);
     }
 
     pub fn get(&self, index: usize) -> Option<bool> {
@@ -134,8 +134,8 @@ impl<const BYTES: usize> FixedBitSet<BYTES> {
         count_ones(&self.0)
     }
 
-    pub fn is_empty(&self) -> bool {
-        is_empty(&self.0)
+    pub fn is_zeroed(&self) -> bool {
+        is_zeroed(&self.0)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = bool> {
@@ -166,13 +166,13 @@ fn bitset_index(index: usize) -> (usize, usize) {
 }
 
 #[inline]
-fn len(bits: &[u8]) -> usize {
-    bits.len() * BITS_PER_BYTE
+fn bit_len(byte_len: usize) -> usize {
+    byte_len * BITS_PER_BYTE
 }
 
 #[inline]
 fn get(bits: &[u8], index: usize) -> Option<bool> {
-    if index > len(bits) {
+    if index >= bit_len(bits.len()) {
         return None;
     }
 
@@ -183,7 +183,7 @@ fn get(bits: &[u8], index: usize) -> Option<bool> {
 
 #[inline]
 fn set(bits: &mut [u8], index: usize, value: bool) {
-    assert!(index < len(bits), "Index out of bounds");
+    assert!(index < bit_len(bits.len()), "Index out of bounds");
 
     let (byte, bit) = bitset_index(index);
 
@@ -195,10 +195,21 @@ fn set(bits: &mut [u8], index: usize, value: bool) {
 }
 
 #[inline]
-fn clear(bits: &mut [u8]) {
-    for byte in bits {
-        *byte = 0;
+fn set_range(bits: &mut [u8], range: Range<usize>, value: bool) {
+    if range.is_empty() {
+        return;
     }
+
+    assert!(range.end <= bit_len(bits.len()), "Index out of bounds");
+
+    for index in range {
+        set(bits, index, value);
+    }
+}
+
+#[inline]
+fn clear(bits: &mut [u8]) {
+    bits.fill(0);
 }
 
 #[inline]
@@ -207,7 +218,7 @@ fn count_ones(bits: &[u8]) -> usize {
 }
 
 #[inline]
-fn is_empty(bits: &[u8]) -> bool {
+fn is_zeroed(bits: &[u8]) -> bool {
     bits.iter().all(|byte| *byte == 0)
 }
 
@@ -245,16 +256,17 @@ mod test {
     }
 
     #[test]
-    fn bitset_clear_and_is_empty() {
+    fn bitset_clear_and_is_zeroed() {
         let mut bitset = BitSet::new();
 
-        assert!(bitset.is_empty());
+        assert!(bitset.is_zeroed());
 
         bitset.set(3, true);
-        assert!(!bitset.is_empty());
+        assert!(!bitset.is_zeroed());
 
         bitset.clear();
-        assert!(bitset.is_empty());
+        assert!(bitset.is_zeroed());
+        assert_eq!(bitset.bit_len(), 8);
     }
 
     #[test]
@@ -267,7 +279,7 @@ mod test {
 
         let values: Vec<bool> = bitset.iter().collect();
 
-        assert_eq!(values.len(), bitset.len());
+        assert_eq!(values.len(), bitset.bit_len());
         assert!(values[0]);
         assert!(!values[1]);
         assert!(values[3]);
@@ -286,11 +298,27 @@ mod test {
     }
 
     #[test]
-    fn bitset_with_capacity_is_in_bits() {
+    fn bitset_capacity_is_reported_in_bits_and_bytes() {
         let bitset = BitSet::with_capacity(9);
 
-        assert_eq!(bitset.capacity(), 16);
-        assert!(bitset.is_empty());
+        assert_eq!(bitset.byte_capacity(), 2);
+        assert_eq!(bitset.bit_capacity(), 16);
+        assert!(bitset.is_zeroed());
+    }
+
+    #[test]
+    fn bitset_from_and_into_bytes_roundtrip() {
+        let bitset = BitSet::from_bytes([0b0000_0101, 0b0000_0010]);
+
+        assert_eq!(bitset.as_bytes(), &[0b0000_0101, 0b0000_0010]);
+        assert_eq!(bitset.into_bytes(), vec![0b0000_0101, 0b0000_0010]);
+    }
+
+    #[test]
+    fn bitset_get_out_of_bounds_returns_none() {
+        let bitset = BitSet::new();
+
+        assert_eq!(bitset.get(0), None);
     }
 
     #[test]
@@ -319,16 +347,16 @@ mod test {
     }
 
     #[test]
-    fn fixed_bitset_clear_and_is_empty() {
+    fn fixed_bitset_clear_and_is_zeroed() {
         let mut bitset = FixedBitSet::<4>::new();
 
-        assert!(bitset.is_empty());
+        assert!(bitset.is_zeroed());
 
         bitset.set(3, true);
-        assert!(!bitset.is_empty());
+        assert!(!bitset.is_zeroed());
 
         bitset.clear();
-        assert!(bitset.is_empty());
+        assert!(bitset.is_zeroed());
     }
 
     #[test]
@@ -341,7 +369,7 @@ mod test {
 
         let values: Vec<bool> = bitset.iter().collect();
 
-        assert_eq!(values.len(), bitset.len());
+        assert_eq!(values.len(), bitset.bit_len());
         assert!(values[0]);
         assert!(!values[1]);
         assert!(values[3]);
@@ -367,5 +395,13 @@ mod test {
         bitset.set(4, true);
 
         assert_eq!(format!("{bitset}"), "[00101000]");
+    }
+
+    #[test]
+    fn fixed_bitset_from_and_into_bytes_roundtrip() {
+        let bitset = FixedBitSet::<2>::from_bytes([0b0000_0101, 0b0000_0010]);
+
+        assert_eq!(bitset.as_bytes(), &[0b0000_0101, 0b0000_0010]);
+        assert_eq!(bitset.into_bytes(), [0b0000_0101, 0b0000_0010]);
     }
 }
