@@ -1,3 +1,5 @@
+//! linker metadata helpers for embedding named byte sections.
+
 /// embeds a byte slice as a named linker section symbol.
 ///
 /// # usage

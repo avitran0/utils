@@ -1,3 +1,5 @@
+//! helpers for reading and writing primitive values and raw bytes.
+
 use std::{io::Result, mem::size_of};
 
 /// byte order used by endian-aware read and write helpers.

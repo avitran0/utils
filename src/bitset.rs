@@ -1,3 +1,5 @@
+//! bitset types backed by dynamic and fixed-size byte storage.
+
 use std::{
     fmt::Display,
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Range},

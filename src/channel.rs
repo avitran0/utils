@@ -1,5 +1,7 @@
+//! a small bidirectional channel wrapper built on `std::sync::mpsc`.
+
 use std::{
-    sync::mpsc::{Receiver, RecvError, RecvTimeoutError, SendError, Sender, TryRecvError, channel},
+    sync::mpsc::{channel, Receiver, RecvError, RecvTimeoutError, SendError, Sender, TryRecvError},
     time::Duration,
 };
 

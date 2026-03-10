@@ -1,3 +1,5 @@
+//! a lightweight logger with stdout and file output options.
+
 use std::{
     fs::{File, OpenOptions},
     io::{self, LineWriter, Write},

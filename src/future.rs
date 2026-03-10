@@ -1,3 +1,5 @@
+//! minimal future helpers for blocking on async work without an executor.
+
 use std::{
     future::Future,
     sync::Arc,
