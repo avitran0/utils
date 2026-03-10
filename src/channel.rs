@@ -3,12 +3,14 @@ use std::{
     time::Duration,
 };
 
+/// a bidirectional channel built from a paired sender and receiver.
 pub struct Channel<T> {
     sender: Sender<T>,
     receiver: Receiver<T>,
 }
 
 impl<T> Channel<T> {
+    /// creates a connected pair of channel endpoints.
     pub fn new() -> (Self, Self) {
         let (sender_1, receiver_2) = channel();
         let (sender_2, receiver_1) = channel();
@@ -24,18 +26,22 @@ impl<T> Channel<T> {
         )
     }
 
+    /// sends a message to the opposite endpoint.
     pub fn send(&self, message: T) -> Result<(), SendError<T>> {
         self.sender.send(message)
     }
 
+    /// blocks until a message is received.
     pub fn receive(&self) -> Result<T, RecvError> {
         self.receiver.recv()
     }
 
+    /// waits up to `timeout` for a message to arrive.
     pub fn receive_timeout(&self, timeout: Duration) -> Result<T, RecvTimeoutError> {
         self.receiver.recv_timeout(timeout)
     }
 
+    /// attempts to receive a message without blocking.
     pub fn try_receive(&self) -> Result<T, TryRecvError> {
         self.receiver.try_recv()
     }
@@ -69,7 +75,10 @@ mod test {
     fn test_channel_timeout() {
         let (left, right) = Channel::new();
 
-        assert_eq!(left.receive_timeout(Duration::from_millis(100)), Err(RecvTimeoutError::Timeout));
+        assert_eq!(
+            left.receive_timeout(Duration::from_millis(100)),
+            Err(RecvTimeoutError::Timeout)
+        );
 
         assert_eq!(right.send(1), Ok(()));
         assert_eq!(left.receive_timeout(Duration::from_millis(100)), Ok(1));

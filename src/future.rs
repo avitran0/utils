@@ -25,6 +25,7 @@ impl Wake for Signal {
 }
 
 pub trait FutureExt: Future {
+    /// blocks the current thread until the future resolves.
     fn block(self) -> Self::Output
     where
         Self: Sized,

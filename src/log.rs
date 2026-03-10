@@ -9,20 +9,20 @@ use parking_lot::Mutex;
 
 pub use log::*;
 
-/// Configuration options for the Logger.
+/// configuration options for the logger.
 #[derive(Debug, Clone)]
 pub struct LoggerOptions {
-    /// The logging level.
+    /// the logging level.
     pub level: Level,
-    /// Optional file path to write logs to.
+    /// optional file path to write logs to.
     pub file: Option<PathBuf>,
-    /// Whether to truncate the log file, if present.
+    /// whether to truncate the log file, if present.
     pub truncate: bool,
-    /// Whether to write logs to stdout.
+    /// whether to write logs to stdout.
     pub stdout: bool,
-    /// Optional module prefix to filter logs.
+    /// optional module prefix to filter logs.
     pub module: Option<String>,
-    /// Whether to include debug information (file/line) in logs.
+    /// whether to include debug information (file/line) in logs.
     pub debug: bool,
 }
 
@@ -40,42 +40,42 @@ impl Default for LoggerOptions {
 }
 
 impl LoggerOptions {
-    /// Sets the logging level.
+    /// sets the logging level.
     #[must_use]
     pub fn level(mut self, level: Level) -> Self {
         self.level = level;
         self
     }
 
-    /// Sets the log file path.
+    /// sets the log file path.
     #[must_use]
     pub fn file(mut self, file: impl AsRef<Path>) -> Self {
         self.file = Some(file.as_ref().to_path_buf());
         self
     }
 
-    /// Enables or disables log file truncation.
+    /// enables or disables log file truncation.
     #[must_use]
     pub fn truncate(mut self, truncate: bool) -> Self {
         self.truncate = truncate;
         self
     }
 
-    /// Enables or disables stdout logging.
+    /// enables or disables stdout logging.
     #[must_use]
     pub fn stdout(mut self, stdout: bool) -> Self {
         self.stdout = stdout;
         self
     }
 
-    /// Sets a module filter.
+    /// sets a module filter.
     #[must_use]
     pub fn module(mut self, module: &str) -> Self {
         self.module = Some(module.to_owned());
         self
     }
 
-    /// Enables or disables debug mode.
+    /// enables or disables debug mode.
     #[must_use]
     pub fn debug(mut self, debug: bool) -> Self {
         self.debug = debug;
@@ -83,14 +83,14 @@ impl LoggerOptions {
     }
 }
 
-/// A simple logger implementation.
+/// a simple logger implementation.
 pub struct Logger {
     writer: Option<Mutex<LineWriter<File>>>,
     options: LoggerOptions,
 }
 
 impl Logger {
-    /// Installs the logger globally.
+    /// installs the logger globally.
     pub fn install(options: LoggerOptions) {
         Self::new(options)
             .expect("Failed to create logger")
@@ -98,7 +98,7 @@ impl Logger {
             .expect("Failed to install logger");
     }
 
-    /// Creates a new Logger instance.
+    /// creates a new logger instance.
     pub fn new(mut options: LoggerOptions) -> io::Result<Self> {
         if let Ok(level_env) = std::env::var("RUST_LOG")
             && let Ok(level) = Level::from_str(&level_env)
@@ -137,7 +137,7 @@ impl Logger {
         Ok(Self { writer, options })
     }
 
-    /// Initializes the logger.
+    /// initializes the logger.
     pub fn init(self) -> Result<(), SetLoggerError> {
         let max_level = self.options.level.to_level_filter();
         set_boxed_logger(Box::new(self))?;

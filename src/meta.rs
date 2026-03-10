@@ -1,4 +1,6 @@
-/// # Usage
+/// embeds a byte slice as a named linker section symbol.
+///
+/// # usage
 ///
 /// ```
 /// use utils::embed_metadata;

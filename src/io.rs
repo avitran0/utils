@@ -1,9 +1,13 @@
 use std::{io::Result, mem::size_of};
 
+/// byte order used by endian-aware read and write helpers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Endian {
+    /// uses the platform native byte order.
     Native,
+    /// uses little-endian byte order.
     Little,
+    /// uses big-endian byte order.
     Big,
 }
 
@@ -56,6 +60,7 @@ macro_rules! impl_write_endian_method {
     };
 }
 
+/// extension methods for reading numbers and byte buffers from any reader.
 pub trait ReadBytes: std::io::Read {
     impl_read_method!(read_u8, u8);
 
@@ -117,6 +122,7 @@ pub trait ReadBytes: std::io::Read {
 
 impl<R: std::io::Read> ReadBytes for R {}
 
+/// extension methods for writing numbers and byte buffers to any writer.
 pub trait WriteBytes: std::io::Write {
     #[inline]
     fn write_u8(&mut self, value: u8) -> Result<()> {

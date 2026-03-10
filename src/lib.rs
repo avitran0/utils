@@ -1,3 +1,5 @@
+//! utility types and traits built on top of the standard library.
+
 pub mod bitset;
 pub mod channel;
 pub mod future;
