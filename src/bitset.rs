@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 const BITS_PER_BYTE: usize = 8;
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -76,6 +78,12 @@ impl BitSet {
     }
 }
 
+impl Display for BitSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        display_bitset(&self.0, f)
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct FixedBitSet<const BYTES: usize>([u8; BYTES]);
@@ -141,6 +149,12 @@ impl<const BYTES: usize> Default for FixedBitSet<BYTES> {
     }
 }
 
+impl<const BYTES: usize> Display for FixedBitSet<BYTES> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        display_bitset(&self.0, f)
+    }
+}
+
 #[inline]
 fn bytes_for_bits(bits: usize) -> usize {
     bits.div_ceil(BITS_PER_BYTE)
@@ -201,6 +215,14 @@ fn is_empty(bits: &[u8]) -> bool {
 fn iter(bits: &[u8]) -> impl Iterator<Item = bool> {
     bits.iter()
         .flat_map(|byte| (0..BITS_PER_BYTE).map(move |bit| (byte >> bit) & 1 == 1))
+}
+
+fn display_bitset(bits: &[u8], f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "[")?;
+    for bit in iter(bits) {
+        write!(f, "{}", if bit { '1' } else { '0' })?;
+    }
+    write!(f, "]")
 }
 
 #[cfg(test)]
@@ -272,6 +294,16 @@ mod test {
     }
 
     #[test]
+    fn bitset_display() {
+        let mut bitset = BitSet::new();
+
+        bitset.set(2, true);
+        bitset.set(4, true);
+
+        assert_eq!(format!("{bitset}"), "[00101000]");
+    }
+
+    #[test]
     fn fixed_bitset_set_get_roundtrip() {
         let mut bitset = FixedBitSet::<4>::new();
 
@@ -325,5 +357,15 @@ mod test {
         assert_eq!(bitset.get(2), Some(true));
         assert_eq!(bitset.get(5), Some(true));
         assert_eq!(bitset.get(6), Some(false));
+    }
+
+    #[test]
+    fn fixed_bitset_display() {
+        let mut bitset = FixedBitSet::<1>::new();
+
+        bitset.set(2, true);
+        bitset.set(4, true);
+
+        assert_eq!(format!("{bitset}"), "[00101000]");
     }
 }
