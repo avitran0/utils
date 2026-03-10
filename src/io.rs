@@ -92,6 +92,7 @@ pub trait ReadBytes: std::io::Read {
     impl_read_endian_method!(read_f64_endian, f64);
 
     #[inline]
+    /// reads exactly `count` bytes.
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; count];
         self.read_exact(&mut buf)?;
@@ -99,6 +100,10 @@ pub trait ReadBytes: std::io::Read {
     }
 
     #[inline]
+    /// reads a value by copying its raw in-memory bytes.
+    ///
+    /// this is only sound for plain-old-data layouts with no invalid bit patterns,
+    /// no internal references, and no drop logic.
     fn read_value<T: Default + Copy>(&mut self) -> Result<T> {
         let mut value = T::default();
         let buf = core::slice::from_mut(&mut value);
@@ -154,11 +159,16 @@ pub trait WriteBytes: std::io::Write {
     impl_write_endian_method!(write_f64_endian, f64);
 
     #[inline]
+    /// writes exactly `bytes.len()` bytes.
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         self.write_all(bytes)
     }
 
     #[inline]
+    /// writes a value by copying its raw in-memory bytes.
+    ///
+    /// this is only sound for plain-old-data layouts with no padding requirements
+    /// that matter across serialization boundaries.
     fn write_value<T: Copy>(&mut self, value: &T) -> Result<()> {
         let buf = core::slice::from_ref(value);
         let buf = unsafe { core::slice::from_raw_parts::<u8>(buf.as_ptr().cast(), size_of::<T>()) };
@@ -200,5 +210,36 @@ mod test {
 
         assert_eq!(cursor.read_u32_endian(Endian::Big).unwrap(), 0x0102_0304);
         assert_eq!(cursor.read_u16_endian(Endian::Little).unwrap(), 0x0506);
+    }
+
+    #[test]
+    fn read_write_bytes_roundtrip() {
+        let mut cursor = Cursor::new(Vec::new());
+
+        cursor.write_bytes(&[1, 2, 3, 4]).unwrap();
+        cursor.set_position(0);
+
+        assert_eq!(cursor.read_bytes(4).unwrap(), vec![1, 2, 3, 4]);
+    }
+
+    #[repr(C)]
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    struct PlainData {
+        left: u16,
+        right: u16,
+    }
+
+    #[test]
+    fn read_write_value_roundtrip_for_plain_data() {
+        let mut cursor = Cursor::new(Vec::new());
+        let value = PlainData {
+            left: 0x1234,
+            right: 0x5678,
+        };
+
+        cursor.write_value(&value).unwrap();
+        cursor.set_position(0);
+
+        assert_eq!(cursor.read_value::<PlainData>().unwrap(), value);
     }
 }

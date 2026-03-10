@@ -5,52 +5,63 @@ use std::{
 
 const BITS_PER_BYTE: usize = 8;
 
-/// Dynamic `BitSet` type, with an underlying [`Vec<u8>`].
-/// Will grow to accomodate set and get requests.
+/// dynamic `BitSet` type, with an underlying [`Vec<u8>`].
+/// will grow to accomodate set and get requests.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct BitSet(Vec<u8>);
 
 impl BitSet {
+    /// creates an empty bitset.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// creates an empty bitset with capacity for at least `capacity_bits` bits.
     pub fn with_capacity(capacity_bits: usize) -> Self {
         Self(Vec::with_capacity(bytes_for_bits(capacity_bits)))
     }
 
+    /// wraps an existing byte buffer as a bitset.
     pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Self {
         Self(bytes.into())
     }
 
+    /// returns the underlying bytes.
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }
 
+    /// consumes the bitset and returns the underlying bytes.
     pub fn into_bytes(self) -> Vec<u8> {
         self.0
     }
 
+    /// returns the number of bytes currently stored by the bitset.
     pub fn byte_len(&self) -> usize {
         self.0.len()
     }
 
+    /// returns the number of addressable bits currently stored by the bitset.
     pub fn bit_len(&self) -> usize {
         bit_len(self.byte_len())
     }
 
+    /// returns the underlying byte capacity.
     pub fn byte_capacity(&self) -> usize {
         self.0.capacity()
     }
 
+    /// returns the bit capacity implied by the underlying byte capacity.
     pub fn bit_capacity(&self) -> usize {
         bit_len(self.byte_capacity())
     }
 
+    /// returns the bit value at `index`, or `None` if it is out of bounds.
     pub fn get(&self, index: usize) -> Option<bool> {
         get(&self.0, index)
     }
 
+    /// sets the bit at `index`, growing the bitset as needed.
     pub fn set(&mut self, index: usize, value: bool) {
         if index >= self.bit_len() {
             self.0.resize(index / BITS_PER_BYTE + 1, 0);
@@ -59,6 +70,7 @@ impl BitSet {
         set(&mut self.0, index, value);
     }
 
+    /// sets every bit in `range`, growing the bitset as needed.
     pub fn set_range(&mut self, range: Range<usize>, value: bool) {
         if range.end > self.bit_len() {
             self.0.resize(bytes_for_bits(range.end), 0);
@@ -67,22 +79,27 @@ impl BitSet {
         set_range(&mut self.0, range, value);
     }
 
+    /// clears all bits while preserving the current length.
     pub fn clear(&mut self) {
         clear(&mut self.0);
     }
 
+    /// returns the bitwise complement of this bitset.
     pub fn not(&self) -> Self {
         Self(bitwise_not(&self.0))
     }
 
+    /// counts the number of set bits.
     pub fn count_ones(&self) -> usize {
         count_ones(&self.0)
     }
 
+    /// returns `true` if all stored bits are unset.
     pub fn is_zeroed(&self) -> bool {
         is_zeroed(&self.0)
     }
 
+    /// iterates over every stored bit in least-significant-bit-first order.
     pub fn iter(&self) -> impl Iterator<Item = bool> {
         iter(&self.0)
     }
@@ -140,83 +157,104 @@ impl Not for &BitSet {
     }
 }
 
-/// Fixed `BitSet` type, with an underlying `[u8; BYTES]`.
-/// Will panic if trying to set indices out of bounds.
+/// fixed `BitSet` type, with an underlying `[u8; BYTES]`.
+/// will panic if trying to set indices out of bounds.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FixedBitSet<const BYTES: usize>([u8; BYTES]);
 
 impl<const BYTES: usize> FixedBitSet<BYTES> {
+    /// creates a zero-initialized fixed-size bitset.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// wraps an existing byte array as a fixed-size bitset.
     pub fn from_bytes(bytes: [u8; BYTES]) -> Self {
         Self(bytes)
     }
 
+    /// returns the underlying bytes.
     pub fn as_bytes(&self) -> &[u8; BYTES] {
         &self.0
     }
 
+    /// consumes the bitset and returns the underlying bytes.
     pub fn into_bytes(self) -> [u8; BYTES] {
         self.0
     }
 
+    /// returns the fixed byte length.
     pub const fn byte_len(&self) -> usize {
         BYTES
     }
 
+    /// returns the fixed bit length.
     pub const fn bit_len(&self) -> usize {
         BYTES * BITS_PER_BYTE
     }
 
+    /// sets the bit at `index`.
+    ///
+    /// panics if `index` is out of bounds.
     pub fn set(&mut self, index: usize, value: bool) {
         set(&mut self.0, index, value);
     }
 
+    /// sets every bit in `range`.
+    ///
+    /// panics if `range` exceeds the fixed size.
     pub fn set_range(&mut self, range: Range<usize>, value: bool) {
         set_range(&mut self.0, range, value);
     }
 
+    /// returns the bit value at `index`, or `None` if it is out of bounds.
     pub fn get(&self, index: usize) -> Option<bool> {
         get(&self.0, index)
     }
 
+    /// clears all bits.
     pub fn clear(&mut self) {
         clear(&mut self.0);
     }
 
+    /// returns the bitwise AND of two fixed-size bitsets.
     pub fn and(&self, other: &Self) -> Self {
         Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
             left & right
         }))
     }
 
+    /// returns the bitwise OR of two fixed-size bitsets.
     pub fn or(&self, other: &Self) -> Self {
         Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
             left | right
         }))
     }
 
+    /// returns the bitwise XOR of two fixed-size bitsets.
     pub fn xor(&self, other: &Self) -> Self {
         Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
             left ^ right
         }))
     }
 
+    /// returns the bitwise complement of this bitset.
     pub fn not(&self) -> Self {
         Self(bitwise_not_array(&self.0))
     }
 
+    /// counts the number of set bits.
     pub fn count_ones(&self) -> usize {
         count_ones(&self.0)
     }
 
+    /// returns `true` if all bits are unset.
     pub fn is_zeroed(&self) -> bool {
         is_zeroed(&self.0)
     }
 
+    /// iterates over every stored bit in least-significant-bit-first order.
     pub fn iter(&self) -> impl Iterator<Item = bool> {
         iter(&self.0)
     }
@@ -614,6 +652,14 @@ mod test {
     }
 
     #[test]
+    fn bitset_not_operation() {
+        let bitset = BitSet::from([0b0000_0101, 0b1111_0000]);
+
+        assert_eq!(bitset.not().as_bytes(), &[0b1111_1010, 0b0000_1111]);
+        assert_eq!((!&bitset).as_bytes(), &[0b1111_1010, 0b0000_1111]);
+    }
+
+    #[test]
     fn fixed_bitset_set_get_roundtrip() {
         let mut bitset = FixedBitSet::<4>::new();
 
@@ -734,5 +780,16 @@ mod test {
         let mut xored = original;
         xored ^= other;
         assert_eq!(xored.as_bytes(), &[0b0000_0110, 0b0110_0110]);
+    }
+
+    #[test]
+    fn fixed_bitset_inherent_bitwise_methods() {
+        let left = FixedBitSet::<2>::from([0b0000_1100, 0b1010_1010]);
+        let right = FixedBitSet::<2>::from([0b0000_1010, 0b1100_1100]);
+
+        assert_eq!(left.and(&right).as_bytes(), &[0b0000_1000, 0b1000_1000]);
+        assert_eq!(left.or(&right).as_bytes(), &[0b0000_1110, 0b1110_1110]);
+        assert_eq!(left.xor(&right).as_bytes(), &[0b0000_0110, 0b0110_0110]);
+        assert_eq!(left.not().as_bytes(), &[0b1111_0011, 0b0101_0101]);
     }
 }
