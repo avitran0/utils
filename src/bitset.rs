@@ -76,6 +76,7 @@ impl BitSet {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct FixedBitSet<const BYTES: usize>([u8; BYTES]);
 
