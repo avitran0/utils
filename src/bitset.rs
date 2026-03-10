@@ -1,4 +1,7 @@
-use std::{fmt::Display, ops::Range};
+use std::{
+    fmt::Display,
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Range},
+};
 
 const BITS_PER_BYTE: usize = 8;
 
@@ -68,6 +71,10 @@ impl BitSet {
         clear(&mut self.0);
     }
 
+    pub fn not(&self) -> Self {
+        Self(bitwise_not(&self.0))
+    }
+
     pub fn count_ones(&self) -> usize {
         count_ones(&self.0)
     }
@@ -117,6 +124,22 @@ impl From<BitSet> for Vec<u8> {
     }
 }
 
+impl Not for BitSet {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self::not(&self)
+    }
+}
+
+impl Not for &BitSet {
+    type Output = BitSet;
+
+    fn not(self) -> Self::Output {
+        BitSet::not(self)
+    }
+}
+
 /// Fixed `BitSet` type, with an underlying `[u8; BYTES]`.
 /// Will panic if trying to set indices out of bounds.
 #[repr(C)]
@@ -162,6 +185,28 @@ impl<const BYTES: usize> FixedBitSet<BYTES> {
 
     pub fn clear(&mut self) {
         clear(&mut self.0);
+    }
+
+    pub fn and(&self, other: &Self) -> Self {
+        Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
+            left & right
+        }))
+    }
+
+    pub fn or(&self, other: &Self) -> Self {
+        Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
+            left | right
+        }))
+    }
+
+    pub fn xor(&self, other: &Self) -> Self {
+        Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
+            left ^ right
+        }))
+    }
+
+    pub fn not(&self) -> Self {
+        Self(bitwise_not_array(&self.0))
     }
 
     pub fn count_ones(&self) -> usize {
@@ -213,6 +258,154 @@ impl<const BYTES: usize> From<FixedBitSet<BYTES>> for [u8; BYTES] {
     }
 }
 
+impl<const BYTES: usize> BitAnd for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self::and(&self, &rhs)
+    }
+}
+
+impl<const BYTES: usize> BitAnd<&FixedBitSet<BYTES>> for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn bitand(self, rhs: &Self) -> Self::Output {
+        Self::and(&self, rhs)
+    }
+}
+
+impl<const BYTES: usize> BitAnd<FixedBitSet<BYTES>> for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn bitand(self, rhs: FixedBitSet<BYTES>) -> Self::Output {
+        FixedBitSet::and(self, &rhs)
+    }
+}
+
+impl<const BYTES: usize> BitAnd for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        FixedBitSet::and(self, rhs)
+    }
+}
+
+impl<const BYTES: usize> BitAndAssign<&Self> for FixedBitSet<BYTES> {
+    fn bitand_assign(&mut self, rhs: &Self) {
+        *self = Self::and(self, rhs);
+    }
+}
+
+impl<const BYTES: usize> BitAndAssign for FixedBitSet<BYTES> {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self &= &rhs;
+    }
+}
+
+impl<const BYTES: usize> BitOr for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::or(&self, &rhs)
+    }
+}
+
+impl<const BYTES: usize> BitOr<&FixedBitSet<BYTES>> for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn bitor(self, rhs: &Self) -> Self::Output {
+        Self::or(&self, rhs)
+    }
+}
+
+impl<const BYTES: usize> BitOr<FixedBitSet<BYTES>> for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn bitor(self, rhs: FixedBitSet<BYTES>) -> Self::Output {
+        FixedBitSet::or(self, &rhs)
+    }
+}
+
+impl<const BYTES: usize> BitOr for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        FixedBitSet::or(self, rhs)
+    }
+}
+
+impl<const BYTES: usize> BitOrAssign<&Self> for FixedBitSet<BYTES> {
+    fn bitor_assign(&mut self, rhs: &Self) {
+        *self = Self::or(self, rhs);
+    }
+}
+
+impl<const BYTES: usize> BitOrAssign for FixedBitSet<BYTES> {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self |= &rhs;
+    }
+}
+
+impl<const BYTES: usize> BitXor for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self::xor(&self, &rhs)
+    }
+}
+
+impl<const BYTES: usize> BitXor<&FixedBitSet<BYTES>> for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn bitxor(self, rhs: &Self) -> Self::Output {
+        Self::xor(&self, rhs)
+    }
+}
+
+impl<const BYTES: usize> BitXor<FixedBitSet<BYTES>> for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn bitxor(self, rhs: FixedBitSet<BYTES>) -> Self::Output {
+        FixedBitSet::xor(self, &rhs)
+    }
+}
+
+impl<const BYTES: usize> BitXor for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        FixedBitSet::xor(self, rhs)
+    }
+}
+
+impl<const BYTES: usize> BitXorAssign<&Self> for FixedBitSet<BYTES> {
+    fn bitxor_assign(&mut self, rhs: &Self) {
+        *self = Self::xor(self, rhs);
+    }
+}
+
+impl<const BYTES: usize> BitXorAssign for FixedBitSet<BYTES> {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self ^= &rhs;
+    }
+}
+
+impl<const BYTES: usize> Not for FixedBitSet<BYTES> {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self::not(&self)
+    }
+}
+
+impl<const BYTES: usize> Not for &FixedBitSet<BYTES> {
+    type Output = FixedBitSet<BYTES>;
+
+    fn not(self) -> Self::Output {
+        FixedBitSet::not(self)
+    }
+}
+
 #[inline]
 fn bytes_for_bits(bits: usize) -> usize {
     bits.div_ceil(BITS_PER_BYTE)
@@ -226,6 +419,37 @@ fn bitset_index(index: usize) -> (usize, usize) {
 #[inline]
 fn bit_len(byte_len: usize) -> usize {
     byte_len * BITS_PER_BYTE
+}
+
+#[inline]
+fn bitwise_not(bits: &[u8]) -> Vec<u8> {
+    bits.iter().map(|byte| !byte).collect()
+}
+
+#[inline]
+fn bitwise_binary_array<const BYTES: usize>(
+    bits: &[u8; BYTES],
+    other: &[u8; BYTES],
+    op: impl Fn(u8, u8) -> u8,
+) -> [u8; BYTES] {
+    let mut out = [0; BYTES];
+
+    for (index, (left, right)) in bits.iter().zip(other.iter()).enumerate() {
+        out[index] = op(*left, *right);
+    }
+
+    out
+}
+
+#[inline]
+fn bitwise_not_array<const BYTES: usize>(bits: &[u8; BYTES]) -> [u8; BYTES] {
+    let mut out = [0; BYTES];
+
+    for (index, byte) in bits.iter().enumerate() {
+        out[index] = !byte;
+    }
+
+    out
 }
 
 #[inline]
@@ -481,5 +705,34 @@ mod test {
             &[0b0000_0101, 0b0000_0010]
         );
         assert_eq!(<[u8; 2]>::from(bitset), [0b0000_0101, 0b0000_0010]);
+    }
+
+    #[test]
+    fn fixed_bitset_bitwise_operations() {
+        let left = FixedBitSet::<2>::from([0b0000_1100, 0b1010_1010]);
+        let right = FixedBitSet::<2>::from([0b0000_1010, 0b1100_1100]);
+
+        assert_eq!((left & right).as_bytes(), &[0b0000_1000, 0b1000_1000]);
+        assert_eq!((left | right).as_bytes(), &[0b0000_1110, 0b1110_1110]);
+        assert_eq!((left ^ right).as_bytes(), &[0b0000_0110, 0b0110_0110]);
+        assert_eq!((!&left).as_bytes(), &[0b1111_0011, 0b0101_0101]);
+    }
+
+    #[test]
+    fn fixed_bitset_bitwise_assign_operations() {
+        let original = FixedBitSet::<2>::from([0b0000_1100, 0b1010_1010]);
+        let other = FixedBitSet::<2>::from([0b0000_1010, 0b1100_1100]);
+
+        let mut anded = original;
+        anded &= other;
+        assert_eq!(anded.as_bytes(), &[0b0000_1000, 0b1000_1000]);
+
+        let mut ored = original;
+        ored |= other;
+        assert_eq!(ored.as_bytes(), &[0b0000_1110, 0b1110_1110]);
+
+        let mut xored = original;
+        xored ^= other;
+        assert_eq!(xored.as_bytes(), &[0b0000_0110, 0b0110_0110]);
     }
 }
