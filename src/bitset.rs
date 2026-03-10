@@ -85,6 +85,36 @@ impl Display for BitSet {
     }
 }
 
+impl AsRef<[u8]> for BitSet {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl From<Vec<u8>> for BitSet {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<&[u8]> for BitSet {
+    fn from(bytes: &[u8]) -> Self {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl<const BYTES: usize> From<[u8; BYTES]> for BitSet {
+    fn from(bytes: [u8; BYTES]) -> Self {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl From<BitSet> for Vec<u8> {
+    fn from(bitset: BitSet) -> Self {
+        bitset.into_bytes()
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct FixedBitSet<const BYTES: usize>([u8; BYTES]);
@@ -152,6 +182,30 @@ impl<const BYTES: usize> Default for FixedBitSet<BYTES> {
 impl<const BYTES: usize> Display for FixedBitSet<BYTES> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         display_bitset(&self.0, f)
+    }
+}
+
+impl<const BYTES: usize> AsRef<[u8]> for FixedBitSet<BYTES> {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl<const BYTES: usize> AsRef<[u8; BYTES]> for FixedBitSet<BYTES> {
+    fn as_ref(&self) -> &[u8; BYTES] {
+        self.as_bytes()
+    }
+}
+
+impl<const BYTES: usize> From<[u8; BYTES]> for FixedBitSet<BYTES> {
+    fn from(bytes: [u8; BYTES]) -> Self {
+        Self::from_bytes(bytes)
+    }
+}
+
+impl<const BYTES: usize> From<FixedBitSet<BYTES>> for [u8; BYTES] {
+    fn from(bitset: FixedBitSet<BYTES>) -> Self {
+        bitset.into_bytes()
     }
 }
 
@@ -403,5 +457,25 @@ mod test {
 
         assert_eq!(bitset.as_bytes(), &[0b0000_0101, 0b0000_0010]);
         assert_eq!(bitset.into_bytes(), [0b0000_0101, 0b0000_0010]);
+    }
+
+    #[test]
+    fn bitset_trait_conversions() {
+        let bitset = BitSet::from([0b0000_0101, 0b0000_0010]);
+
+        assert_eq!(bitset.as_ref(), &[0b0000_0101, 0b0000_0010]);
+        assert_eq!(Vec::<u8>::from(bitset), vec![0b0000_0101, 0b0000_0010]);
+    }
+
+    #[test]
+    fn fixed_bitset_trait_conversions() {
+        let bitset = FixedBitSet::<2>::from([0b0000_0101, 0b0000_0010]);
+
+        assert_eq!(AsRef::<[u8]>::as_ref(&bitset), &[0b0000_0101, 0b0000_0010]);
+        assert_eq!(
+            AsRef::<[u8; 2]>::as_ref(&bitset),
+            &[0b0000_0101, 0b0000_0010]
+        );
+        assert_eq!(<[u8; 2]>::from(bitset), [0b0000_0101, 0b0000_0010]);
     }
 }
