@@ -18,7 +18,9 @@ fn rand() -> [u8; 16] {
 
 #[cfg(target_os = "windows")]
 fn rand() -> [u8; 16] {
-    unsafe extern "system" fn ProcessPrng(buf: *mut u8, size: usize) -> i32;
+    unsafe extern "system" {
+        fn ProcessPrng(buf: *mut u8, size: usize) -> i32;
+    }
     let mut buf = [0; 16];
     unsafe {
         ProcessPrng(buf.as_mut_ptr(), 16);
