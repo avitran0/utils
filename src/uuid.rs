@@ -1,8 +1,12 @@
+//! simple uuid implementation, for linux and windows only
+
 use std::fmt::{self};
 
 pub struct Uuid(u128);
 
 impl Uuid {
+    /// returns a randomly generated uuid.
+    /// uses `getrandom` on linux, and `ProcessPrng` on windows.
     pub fn v4() -> Self {
         let mut bytes = rand();
         // sets bits for version and clock_seq...
