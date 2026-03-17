@@ -9,9 +9,12 @@ impl Uuid {
 
 #[cfg(target_os = "linux")]
 fn rand() -> [u8; 16] {
+    unsafe extern "C" {
+        fn getrandom(buf: *mut u8, size: usize, flags: u32) -> isize;
+    }
     let mut buf = [0; 16];
     unsafe {
-        libc::getrandom(buf.as_mut_ptr().cast(), 16, libc::GRND_RANDOM);
+        getrandom(buf.as_mut_ptr().cast(), 16, 2);
     }
     buf
 }
