@@ -96,6 +96,23 @@ fn rand() -> [u8; 16] {
     buf
 }
 
+#[cfg(target_os = "macos")]
+fn rand() -> [u8; 16] {
+    unsafe extern "C" {
+        fn getentropy(buf: *mut u8, size: usize) -> i32;
+    }
+
+    let mut buf = [0; 16];
+    let result = unsafe { getentropy(buf.as_mut_ptr(), buf.len()) };
+
+    if result != 0 {
+        let error = std::io::Error::last_os_error();
+        panic!("getentropy failed: {error}");
+    }
+
+    buf
+}
+
 #[cfg(test)]
 mod test {
     use crate::uuid::{Uuid, rand};
