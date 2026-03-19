@@ -1,6 +1,6 @@
 //! helpers for reading and writing primitive values and raw bytes.
 
-use std::{io::Result, mem::size_of};
+use std::{ffi::CString, io::Result, mem::size_of};
 
 /// byte order used by endian-aware read and write helpers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,6 +134,17 @@ pub trait ReadBytes: std::io::Read {
         self.read_exact(buf)?;
         Ok(values)
     }
+
+    #[inline]
+    fn read_cstr(&mut self) -> Result<String> {
+        let mut bytes = Vec::new();
+        while let c = self.read_u8()?
+            && c != 0
+        {
+            bytes.push(c);
+        }
+        String::from_utf8(bytes).map_err(|_| std::io::Error::other("Invalid UTF-8"))
+    }
 }
 
 impl<R: std::io::Read> ReadBytes for R {}
@@ -207,6 +218,13 @@ pub trait WriteBytes: std::io::Write {
             core::slice::from_raw_parts::<u8>(values.as_ptr().cast(), size_of_val(values))
         };
         self.write_all(buf)
+    }
+
+    #[inline]
+    fn write_cstr(&mut self, string: impl AsRef<str>) -> Result<()> {
+        let cstr = CString::new(string.as_ref()).map_err(std::io::Error::other)?;
+        let bytes = cstr.to_bytes();
+        self.write_all(bytes)
     }
 }
 
