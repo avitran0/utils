@@ -239,7 +239,7 @@ pub trait WriteBytes: std::io::Write {
     /// returns an error if the string contains an embedded null byte.
     fn write_cstr(&mut self, string: impl AsRef<str>) -> Result<()> {
         let cstr = CString::new(string.as_ref()).map_err(std::io::Error::other)?;
-        let bytes = cstr.to_bytes();
+        let bytes = cstr.to_bytes_with_nul();
         self.write_all(bytes)
     }
 }
@@ -309,5 +309,46 @@ mod test {
         cursor.set_position(0);
 
         assert_eq!(cursor.read_value::<PlainData>().unwrap(), value);
+    }
+
+    #[test]
+    fn read_write_cstr_roundtrip() {
+        let mut cursor = Cursor::new(Vec::new());
+
+        cursor.write_cstr("hello").unwrap();
+        cursor.write_cstr("world").unwrap();
+
+        cursor.set_position(0);
+
+        assert_eq!(cursor.read_cstr().unwrap(), "hello");
+        assert_eq!(cursor.read_cstr().unwrap(), "world");
+    }
+
+    #[test]
+    fn read_write_cstr_empty_string() {
+        let mut cursor = Cursor::new(Vec::new());
+
+        cursor.write_bytes(&[0]).unwrap();
+        cursor.set_position(0);
+
+        assert_eq!(cursor.read_cstr().unwrap(), "");
+    }
+
+    #[test]
+    fn read_write_cstr_with_special_chars() {
+        let mut cursor = Cursor::new(Vec::new());
+
+        cursor.write_cstr("hello world!").unwrap();
+        cursor.set_position(0);
+
+        assert_eq!(cursor.read_cstr().unwrap(), "hello world!");
+    }
+
+    #[test]
+    fn read_cstr_invalid_utf8() {
+        let mut cursor = Cursor::new(vec![0xff, 0xfe, 0x00]);
+
+        let result = cursor.read_cstr();
+        assert!(result.is_err());
     }
 }
