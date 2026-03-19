@@ -120,6 +120,20 @@ pub trait ReadBytes: std::io::Read {
         self.read_exact(buf)?;
         Ok(value)
     }
+
+    #[inline]
+    /// reads a vec of values by copying its raw in-memory bytes.
+    ///
+    /// this is only sound for plain-old-data layouts with no invalid bit patterns,
+    /// no internal references, and no drop logic.
+    fn read_value_vec<T: Default + Copy>(&mut self, count: usize) -> Result<Vec<T>> {
+        let mut values = vec![T::default(); count];
+        let buf = unsafe {
+            core::slice::from_raw_parts_mut(values.as_mut_ptr().cast(), count * size_of::<T>())
+        };
+        self.read_exact(buf)?;
+        Ok(values)
+    }
 }
 
 impl<R: std::io::Read> ReadBytes for R {}
@@ -180,6 +194,18 @@ pub trait WriteBytes: std::io::Write {
     fn write_value<T: Copy>(&mut self, value: &T) -> Result<()> {
         let buf = core::slice::from_ref(value);
         let buf = unsafe { core::slice::from_raw_parts::<u8>(buf.as_ptr().cast(), size_of::<T>()) };
+        self.write_all(buf)
+    }
+
+    #[inline]
+    /// writes a vec of values by copying its raw in-memory bytes.
+    ///
+    /// this is only sound for plain-old-data layouts with no padding requirements
+    /// that matter across serialization boundaries.
+    fn write_value_vec<T: Copy>(&mut self, values: &[T]) -> Result<()> {
+        let buf = unsafe {
+            core::slice::from_raw_parts::<u8>(values.as_ptr().cast(), size_of_val(values))
+        };
         self.write_all(buf)
     }
 }
