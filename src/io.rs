@@ -136,6 +136,14 @@ pub trait ReadBytes: std::io::Read {
     }
 
     #[inline]
+    /// reads a null-terminated string.
+    ///
+    /// reads bytes until a null terminator (`\0`) is encountered,
+    /// returning the accumulated bytes as a UTF-8 string.
+    ///
+    /// # Errors
+    ///
+    /// returns an error if the bytes are not valid UTF-8.
     fn read_cstr(&mut self) -> Result<String> {
         let mut bytes = Vec::new();
         while let c = self.read_u8()?
@@ -221,6 +229,14 @@ pub trait WriteBytes: std::io::Write {
     }
 
     #[inline]
+    /// writes a null-terminated string.
+    ///
+    /// converts `string` to a `CString` and writes all bytes including
+    /// the null terminator to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// returns an error if the string contains an embedded null byte.
     fn write_cstr(&mut self, string: impl AsRef<str>) -> Result<()> {
         let cstr = CString::new(string.as_ref()).map_err(std::io::Error::other)?;
         let bytes = cstr.to_bytes();
