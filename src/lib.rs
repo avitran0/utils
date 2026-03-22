@@ -3,7 +3,6 @@
 pub mod bitset;
 pub mod channel;
 pub mod future;
-pub mod image;
 pub mod io;
 pub mod log;
 #[cfg(target_os = "linux")]
