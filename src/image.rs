@@ -53,6 +53,12 @@ impl Image {
         y as usize * self.height as usize + x as usize
     }
 
+    pub fn bytes(&self) -> &[u8] {
+        unsafe {
+            core::slice::from_raw_parts(self.pixels.as_ptr().cast(), size_of_val(&self.pixels))
+        }
+    }
+
     pub fn read(reader: &mut impl Read) -> std::io::Result<Self> {
         let magic = reader.read_u32()?;
 
