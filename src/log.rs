@@ -143,28 +143,28 @@ macro_rules! log {
 #[macro_export]
 macro_rules! debug {
     ($($args:tt)+) => {
-        $crate::log::log!($crate::Level::Debug, $($args)+)
+        $crate::log!($crate::Level::Debug, $($args)+)
     };
 }
 
 #[macro_export]
 macro_rules! info {
     ($($args:tt)+) => {
-        $crate::log::log!($crate::Level::Info, $($args)+)
+        $crate::log!($crate::Level::Info, $($args)+)
     };
 }
 
 #[macro_export]
 macro_rules! warn {
     ($($args:tt)+) => {
-        $crate::log::log!($crate::Level::Warn, $($args)+)
+        $crate::log!($crate::Level::Warn, $($args)+)
     };
 }
 
 #[macro_export]
 macro_rules! error {
     ($($args:tt)+) => {
-        $crate::log::log!($crate::Level::Error, $($args)+)
+        $crate::log!($crate::Level::Error, $($args)+)
     };
 }
 
