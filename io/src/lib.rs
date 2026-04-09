@@ -126,7 +126,7 @@ pub trait ReadBytes: std::io::Read {
     /// this is only sound for plain-old-data layouts with no invalid bit patterns,
     /// no internal references, and no drop logic.
     #[inline]
-    fn read_value_vec<T: Default + Copy>(&mut self, count: usize) -> Result<Vec<T>> {
+    fn read_vec<T: Default + Copy>(&mut self, count: usize) -> Result<Vec<T>> {
         let mut values = vec![T::default(); count];
         let buf = unsafe {
             core::slice::from_raw_parts_mut(values.as_mut_ptr().cast(), count * size_of::<T>())
@@ -221,7 +221,7 @@ pub trait WriteBytes: std::io::Write {
     /// this is only sound for plain-old-data layouts with no padding requirements
     /// that matter across serialization boundaries.
     #[inline]
-    fn write_value_vec<T: Copy>(&mut self, values: &[T]) -> Result<()> {
+    fn write_vec<T: Copy>(&mut self, values: &[T]) -> Result<()> {
         let buf = unsafe {
             core::slice::from_raw_parts::<u8>(values.as_ptr().cast(), size_of_val(values))
         };
