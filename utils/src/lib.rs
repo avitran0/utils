@@ -7,6 +7,8 @@ pub use io;
 pub use log;
 #[cfg(target_os = "linux")]
 pub use meta;
+#[cfg(target_os = "linux")]
+pub use path;
 /// re-exports synchronization primitives from `parking_lot`.
 pub mod sync {
     pub use parking_lot::{Mutex, RwLock};

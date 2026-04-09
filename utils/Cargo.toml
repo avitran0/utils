@@ -10,4 +10,5 @@ future.workspace = true
 io.workspace = true
 log.workspace = true
 meta.workspace = true
+path.workspace = true
 parking_lot.workspace = true
