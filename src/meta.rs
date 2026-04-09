@@ -5,7 +5,7 @@
 /// # usage
 ///
 /// ```
-/// use meta::embed_metadata;
+/// use utils::embed_metadata;
 ///
 /// embed_metadata!(VERSION, ".version", &[50]);
 /// ```
