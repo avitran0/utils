@@ -33,6 +33,14 @@ impl<S, R> Channel<S, R> {
         self.sender.send(message)
     }
 
+    /// sends a batch of messages to the opposite endpoint.
+    pub fn send_batch(&self, messages: impl IntoIterator<Item = S>) -> Result<(), SendError<S>> {
+        for message in messages {
+            self.send(message)?;
+        }
+        Ok(())
+    }
+
     /// blocks until a message is received.
     pub fn receive(&self) -> Result<R, RecvError> {
         self.receiver.recv()
