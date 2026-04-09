@@ -1,25 +1,25 @@
 //! utility types and traits built on top of the standard library.
 
 #[cfg(feature = "bitset")]
-pub use bitset;
+pub mod bitset;
 
 #[cfg(feature = "channel")]
-pub use channel;
+pub mod channel;
 
 #[cfg(feature = "future")]
-pub use future;
+pub mod future;
 
 #[cfg(feature = "io")]
-pub use io;
+pub mod io;
 
 #[cfg(feature = "log")]
-pub use log;
+pub mod log;
 
 #[cfg(all(feature = "meta", target_os = "linux"))]
-pub use meta;
+pub mod meta;
 
 #[cfg(all(feature = "path", target_os = "linux"))]
-pub use path;
+pub mod path;
 
 /// re-exports synchronization primitives from `parking_lot`.
 #[cfg(feature = "sync")]

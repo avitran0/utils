@@ -3,7 +3,7 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Range},
 };
 
-use crate::{
+use crate::bitset::{
     BITS_PER_BYTE, bitwise_binary_array, bitwise_not_array, clear, count_ones, display_bitset,
     flip, get, is_zeroed, iter, set, set_range,
 };

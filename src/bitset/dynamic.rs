@@ -3,7 +3,7 @@ use std::{
     ops::{Not, Range},
 };
 
-use crate::{
+use crate::bitset::{
     BITS_PER_BYTE, bit_len, bitwise_not, bytes_for_bits, clear, count_ones, display_bitset, flip,
     get, is_zeroed, iter, set, set_range,
 };

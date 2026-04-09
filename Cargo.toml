@@ -1,13 +1,19 @@
-[workspace]
-members = ["bitset", "channel", "future", "io", "log", "meta", "path", "utils"]
-resolver = "3"
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2024"
 
-[workspace.dependencies]
-bitset.path = "bitset"
-channel.path = "channel"
-future.path = "future"
-io.path = "io"
-log.path = "log"
-meta.path = "meta"
-path.path = "path"
+[dependencies]
 parking_lot = "0.12"
+
+[features]
+default = ["bitset", "channel", "future", "io", "log", "meta", "path", "sync"]
+
+bitset = []
+channel = []
+future = []
+io = []
+log = []
+meta = []
+path = []
+sync = []

@@ -9,26 +9,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
-name = "bitset"
-version = "0.1.0"
-
-[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
-
-[[package]]
-name = "channel"
-version = "0.1.0"
-
-[[package]]
-name = "future"
-version = "0.1.0"
-
-[[package]]
-name = "io"
-version = "0.1.0"
 
 [[package]]
 name = "libc"
@@ -44,17 +28,6 @@ checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
 dependencies = [
  "scopeguard",
 ]
-
-[[package]]
-name = "log"
-version = "0.1.0"
-dependencies = [
- "parking_lot",
-]
-
-[[package]]
-name = "meta"
-version = "0.1.0"
 
 [[package]]
 name = "parking_lot"
@@ -78,10 +51,6 @@ dependencies = [
  "smallvec",
  "windows-link",
 ]
-
-[[package]]
-name = "path"
-version = "0.1.0"
 
 [[package]]
 name = "redox_syscall"
@@ -108,14 +77,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 name = "utils"
 version = "0.1.0"
 dependencies = [
- "bitset",
- "channel",
- "future",
- "io",
- "log",
- "meta",
  "parking_lot",
- "path",
 ]
 
 [[package]]
