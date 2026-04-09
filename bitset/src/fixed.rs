@@ -4,8 +4,8 @@ use std::{
 };
 
 use crate::{
-    BITS_PER_BYTE, bitwise_binary_array, bitwise_not_array, clear, count_ones, display_bitset, get,
-    is_zeroed, iter, set, set_range,
+    BITS_PER_BYTE, bitwise_binary_array, bitwise_not_array, clear, count_ones, display_bitset,
+    flip, get, is_zeroed, iter, set, set_range,
 };
 
 /// fixed `BitSet` type, with an underlying `[u8; BYTES]`.
@@ -69,30 +69,9 @@ impl<const BYTES: usize> BitSet<BYTES> {
         clear(&mut self.0);
     }
 
-    /// returns the bitwise AND of two fixed-size bitsets.
-    pub fn and(&self, other: &Self) -> Self {
-        Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
-            left & right
-        }))
-    }
-
-    /// returns the bitwise OR of two fixed-size bitsets.
-    pub fn or(&self, other: &Self) -> Self {
-        Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
-            left | right
-        }))
-    }
-
-    /// returns the bitwise XOR of two fixed-size bitsets.
-    pub fn xor(&self, other: &Self) -> Self {
-        Self(bitwise_binary_array(&self.0, &other.0, |left, right| {
-            left ^ right
-        }))
-    }
-
-    /// returns the bitwise complement of this bitset.
-    pub fn not(&self) -> Self {
-        Self(bitwise_not_array(&self.0))
+    /// flips all bits.
+    pub fn flip(&mut self) {
+        flip(&mut self.0);
     }
 
     /// counts the number of set bits.
@@ -214,7 +193,7 @@ impl<const BYTES: usize> Not for BitSet<BYTES> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self::not(&self)
+        Self(bitwise_not_array(&self.0))
     }
 }
 
@@ -222,7 +201,7 @@ impl<const BYTES: usize> Not for &BitSet<BYTES> {
     type Output = BitSet<BYTES>;
 
     fn not(self) -> Self::Output {
-        BitSet::not(self)
+        BitSet(bitwise_not_array(&self.0))
     }
 }
 
@@ -343,16 +322,5 @@ mod test {
         let mut xored = original;
         xored ^= other;
         assert_eq!(xored.as_bytes(), &[0b0000_0110, 0b0110_0110]);
-    }
-
-    #[test]
-    fn inherent_bitwise_methods() {
-        let left = BitSet::<2>::from([0b0000_1100, 0b1010_1010]);
-        let right = BitSet::<2>::from([0b0000_1010, 0b1100_1100]);
-
-        assert_eq!(left.and(&right).as_bytes(), &[0b0000_1000, 0b1000_1000]);
-        assert_eq!(left.or(&right).as_bytes(), &[0b0000_1110, 0b1110_1110]);
-        assert_eq!(left.xor(&right).as_bytes(), &[0b0000_0110, 0b0110_0110]);
-        assert_eq!(left.not().as_bytes(), &[0b1111_0011, 0b0101_0101]);
     }
 }

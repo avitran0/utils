@@ -4,8 +4,8 @@ use std::{
 };
 
 use crate::{
-    BITS_PER_BYTE, bit_len, bitwise_not, bytes_for_bits, clear, count_ones, display_bitset, get,
-    is_zeroed, iter, set, set_range,
+    BITS_PER_BYTE, bit_len, bitwise_not, bytes_for_bits, clear, count_ones, display_bitset, flip,
+    get, is_zeroed, iter, set, set_range,
 };
 
 /// dynamic `BitSet` type, with an underlying [`Vec<u8>`].
@@ -87,9 +87,9 @@ impl DynamicBitSet {
         clear(&mut self.0);
     }
 
-    /// returns the bitwise complement of this bitset.
-    pub fn not(&self) -> Self {
-        Self(bitwise_not(&self.0))
+    /// flips all bits.
+    pub fn flip(&mut self) {
+        flip(&mut self.0);
     }
 
     /// counts the number of set bits.
@@ -148,7 +148,7 @@ impl Not for DynamicBitSet {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self::not(&self)
+        Self(bitwise_not(&self.0))
     }
 }
 
@@ -156,7 +156,7 @@ impl Not for &DynamicBitSet {
     type Output = DynamicBitSet;
 
     fn not(self) -> Self::Output {
-        DynamicBitSet::not(self)
+        DynamicBitSet(bitwise_not(&self.0))
     }
 }
 
@@ -261,13 +261,5 @@ mod test {
         bitset.set(4, true);
 
         assert_eq!(format!("{bitset}"), "[00101000]");
-    }
-
-    #[test]
-    fn not_operation() {
-        let bitset = DynamicBitSet::from([0b0000_0101, 0b1111_0000]);
-
-        assert_eq!(bitset.not().as_bytes(), &[0b1111_1010, 0b0000_1111]);
-        assert_eq!((!&bitset).as_bytes(), &[0b1111_1010, 0b0000_1111]);
     }
 }

@@ -99,6 +99,13 @@ fn clear(bits: &mut [u8]) {
 }
 
 #[inline]
+fn flip(bits: &mut [u8]) {
+    for byte in bits {
+        *byte = !*byte;
+    }
+}
+
+#[inline]
 fn count_ones(bits: &[u8]) -> usize {
     bits.iter().map(|byte| byte.count_ones() as usize).sum()
 }
