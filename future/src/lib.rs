@@ -26,7 +26,7 @@ impl Wake for Signal {
     }
 }
 
-pub trait FutureExt: Future {
+pub trait FutureBlocking: Future {
     /// blocks the current thread until the future resolves.
     fn block(self) -> Self::Output
     where
@@ -47,11 +47,11 @@ pub trait FutureExt: Future {
     }
 }
 
-impl<F: Future + ?Sized> FutureExt for F {}
+impl<F: Future + ?Sized> FutureBlocking for F {}
 
 #[cfg(test)]
 mod test {
-    use crate::future::FutureExt;
+    use super::FutureBlocking;
 
     #[test]
     fn block() {

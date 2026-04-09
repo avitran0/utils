@@ -1,7 +1,12 @@
-[package]
-name = "utils"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = ["bitset", "channel", "future", "io", "log", "meta", "utils"]
+resolver = "3"
 
-[dependencies]
+[workspace.dependencies]
+bitset.path = "bitset"
+channel.path = "channel"
+future.path = "future"
+io.path = "io"
+log.path = "log"
+meta.path = "meta"
 parking_lot = "0.12"

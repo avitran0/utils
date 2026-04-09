@@ -1,19 +1,19 @@
 //! a small bidirectional channel wrapper built on `std::sync::mpsc`.
 
 use std::{
-    sync::mpsc::{channel, Receiver, RecvError, RecvTimeoutError, SendError, Sender, TryRecvError},
+    sync::mpsc::{Receiver, RecvError, RecvTimeoutError, SendError, Sender, TryRecvError, channel},
     time::Duration,
 };
 
 /// a bidirectional channel built from a paired sender and receiver.
-pub struct Channel<T> {
-    sender: Sender<T>,
-    receiver: Receiver<T>,
+pub struct Channel<S, R> {
+    sender: Sender<S>,
+    receiver: Receiver<R>,
 }
 
-impl<T> Channel<T> {
+impl<S, R> Channel<S, R> {
     /// creates a connected pair of channel endpoints.
-    pub fn new() -> (Self, Self) {
+    pub fn new() -> (Self, Channel<R, S>) {
         let (sender_1, receiver_2) = channel();
         let (sender_2, receiver_1) = channel();
         (
@@ -21,7 +21,7 @@ impl<T> Channel<T> {
                 sender: sender_1,
                 receiver: receiver_1,
             },
-            Self {
+            Channel {
                 sender: sender_2,
                 receiver: receiver_2,
             },
@@ -29,22 +29,22 @@ impl<T> Channel<T> {
     }
 
     /// sends a message to the opposite endpoint.
-    pub fn send(&self, message: T) -> Result<(), SendError<T>> {
+    pub fn send(&self, message: S) -> Result<(), SendError<S>> {
         self.sender.send(message)
     }
 
     /// blocks until a message is received.
-    pub fn receive(&self) -> Result<T, RecvError> {
+    pub fn receive(&self) -> Result<R, RecvError> {
         self.receiver.recv()
     }
 
     /// waits up to `timeout` for a message to arrive.
-    pub fn receive_timeout(&self, timeout: Duration) -> Result<T, RecvTimeoutError> {
+    pub fn receive_timeout(&self, timeout: Duration) -> Result<R, RecvTimeoutError> {
         self.receiver.recv_timeout(timeout)
     }
 
     /// attempts to receive a message without blocking.
-    pub fn try_receive(&self) -> Result<T, TryRecvError> {
+    pub fn try_receive(&self) -> Result<R, TryRecvError> {
         self.receiver.try_recv()
     }
 }
@@ -57,10 +57,11 @@ mod test {
     };
 
     use super::Channel;
+    type IntChannel = Channel<i32, i32>;
 
     #[test]
     fn test_channel_send_receive() {
-        let (left, right) = Channel::new();
+        let (left, right) = IntChannel::new();
 
         let handle = std::thread::spawn(move || {
             right.send(42).unwrap();
@@ -75,7 +76,7 @@ mod test {
 
     #[test]
     fn test_channel_timeout() {
-        let (left, right) = Channel::new();
+        let (left, right) = IntChannel::new();
 
         assert_eq!(
             left.receive_timeout(Duration::from_millis(100)),
@@ -88,7 +89,7 @@ mod test {
 
     #[test]
     fn test_channel_try_receive() {
-        let (left, right) = Channel::new();
+        let (left, right) = IntChannel::new();
 
         assert_eq!(left.try_receive(), Err(TryRecvError::Empty));
 
@@ -98,7 +99,7 @@ mod test {
 
     #[test]
     fn test_channel_multiple_messages() {
-        let (left, right) = Channel::new();
+        let (left, right) = IntChannel::new();
 
         std::thread::spawn(move || {
             for i in 0..5 {

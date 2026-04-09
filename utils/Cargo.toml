@@ -1,0 +1,13 @@
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitset.workspace = true
+channel.workspace = true
+future.workspace = true
+io.workspace = true
+log.workspace = true
+meta.workspace = true
+parking_lot.workspace = true
