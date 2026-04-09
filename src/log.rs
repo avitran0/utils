@@ -129,9 +129,9 @@ impl std::fmt::Display for Level {
 #[macro_export]
 macro_rules! log {
     ($level:expr, $($args:tt)+) => {
-        $crate::log(
+        $crate::log::log(
             $level,
-            $crate::Location {
+            $crate::log::Location {
                 module: module_path!(),
                 file: file!(),
                 line: line!(),
@@ -144,28 +144,28 @@ macro_rules! log {
 #[macro_export]
 macro_rules! debug {
     ($($args:tt)+) => {
-        $crate::log!($crate::Level::Debug, $($args)+)
+        $crate::log!($crate::log::Level::Debug, $($args)+)
     };
 }
 
 #[macro_export]
 macro_rules! info {
     ($($args:tt)+) => {
-        $crate::log!($crate::Level::Info, $($args)+)
+        $crate::log!($crate::log::Level::Info, $($args)+)
     };
 }
 
 #[macro_export]
 macro_rules! warn {
     ($($args:tt)+) => {
-        $crate::log!($crate::Level::Warn, $($args)+)
+        $crate::log!($crate::log::Level::Warn, $($args)+)
     };
 }
 
 #[macro_export]
 macro_rules! error {
     ($($args:tt)+) => {
-        $crate::log!($crate::Level::Error, $($args)+)
+        $crate::log!($crate::log::Level::Error, $($args)+)
     };
 }
 
