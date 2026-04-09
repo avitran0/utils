@@ -1,6 +1,5 @@
 [workspace]
-members = ["bitset", "channel", "future", "io", "log", "utils"]
-exclude = ["meta", "path"]
+members = ["bitset", "channel", "future", "io", "log", "meta", "path", "utils"]
 resolver = "3"
 
 [workspace.dependencies]

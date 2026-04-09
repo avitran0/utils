@@ -9,11 +9,9 @@ channel = { workspace = true, optional = true }
 future = { workspace = true, optional = true }
 io = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
-parking_lot = { workspace = true, optional = true }
-
-[target.'cfg(target_os = "linux")'.dependencies]
 meta = { workspace = true, optional = true }
 path = { workspace = true, optional = true }
+parking_lot = { workspace = true, optional = true }
 
 [features]
 default = ["bitset", "channel", "io", "log", "path", "sync"]
