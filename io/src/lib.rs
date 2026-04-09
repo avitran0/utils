@@ -98,19 +98,19 @@ pub trait ReadBytes: std::io::Read {
     impl_read_method!(read_f64, f64);
     impl_read_endian_method!(read_f64_endian, f64);
 
-    #[inline]
     /// reads exactly `count` bytes.
+    #[inline]
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; count];
         self.read_exact(&mut buf)?;
         Ok(buf)
     }
 
-    #[inline]
     /// reads a value by copying its raw in-memory bytes.
     ///
     /// this is only sound for plain-old-data layouts with no invalid bit patterns,
     /// no internal references, and no drop logic.
+    #[inline]
     fn read_value<T: Default + Copy>(&mut self) -> Result<T> {
         let mut value = T::default();
         let buf = core::slice::from_mut(&mut value);
@@ -121,11 +121,11 @@ pub trait ReadBytes: std::io::Read {
         Ok(value)
     }
 
-    #[inline]
     /// reads a vec of values by copying its raw in-memory bytes.
     ///
     /// this is only sound for plain-old-data layouts with no invalid bit patterns,
     /// no internal references, and no drop logic.
+    #[inline]
     fn read_value_vec<T: Default + Copy>(&mut self, count: usize) -> Result<Vec<T>> {
         let mut values = vec![T::default(); count];
         let buf = unsafe {
@@ -135,7 +135,6 @@ pub trait ReadBytes: std::io::Read {
         Ok(values)
     }
 
-    #[inline]
     /// reads a null-terminated string.
     ///
     /// reads bytes until a null terminator (`\0`) is encountered,
@@ -144,6 +143,7 @@ pub trait ReadBytes: std::io::Read {
     /// # Errors
     ///
     /// returns an error if the bytes are not valid UTF-8.
+    #[inline]
     fn read_cstr(&mut self) -> Result<String> {
         let mut bytes = Vec::new();
         while let c = self.read_u8()?
@@ -199,28 +199,28 @@ pub trait WriteBytes: std::io::Write {
     impl_write_method!(write_f64, f64);
     impl_write_endian_method!(write_f64_endian, f64);
 
-    #[inline]
     /// writes exactly `bytes.len()` bytes.
+    #[inline]
     fn write_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         self.write_all(bytes)
     }
 
-    #[inline]
     /// writes a value by copying its raw in-memory bytes.
     ///
     /// this is only sound for plain-old-data layouts with no padding requirements
     /// that matter across serialization boundaries.
+    #[inline]
     fn write_value<T: Copy>(&mut self, value: &T) -> Result<()> {
         let buf = core::slice::from_ref(value);
         let buf = unsafe { core::slice::from_raw_parts::<u8>(buf.as_ptr().cast(), size_of::<T>()) };
         self.write_all(buf)
     }
 
-    #[inline]
     /// writes a vec of values by copying its raw in-memory bytes.
     ///
     /// this is only sound for plain-old-data layouts with no padding requirements
     /// that matter across serialization boundaries.
+    #[inline]
     fn write_value_vec<T: Copy>(&mut self, values: &[T]) -> Result<()> {
         let buf = unsafe {
             core::slice::from_raw_parts::<u8>(values.as_ptr().cast(), size_of_val(values))
@@ -228,7 +228,6 @@ pub trait WriteBytes: std::io::Write {
         self.write_all(buf)
     }
 
-    #[inline]
     /// writes a null-terminated string.
     ///
     /// converts `string` to a `CString` and writes all bytes including
@@ -237,6 +236,7 @@ pub trait WriteBytes: std::io::Write {
     /// # Errors
     ///
     /// returns an error if the string contains an embedded null byte.
+    #[inline]
     fn write_cstr(&mut self, string: impl AsRef<str>) -> Result<()> {
         let cstr = CString::new(string.as_ref()).map_err(std::io::Error::other)?;
         let bytes = cstr.to_bytes_with_nul();
