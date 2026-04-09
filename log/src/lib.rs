@@ -91,6 +91,7 @@ pub fn init(options: LoggerOptions) -> std::io::Result<()> {
         Some(path) => Some(LineWriter::new(
             OpenOptions::new()
                 .create(true)
+                .write(true)
                 .truncate(options.truncate)
                 .open(path)?,
         )),
