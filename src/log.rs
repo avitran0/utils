@@ -1,15 +1,14 @@
 //! a lightweight logger with stdout and file output options.
 
 use std::{
+    fmt::Arguments,
     fs::{File, OpenOptions},
-    io::{self, LineWriter, Write},
+    io::{LineWriter, Write},
     path::{Path, PathBuf},
-    str::FromStr,
+    sync::OnceLock,
 };
 
 use parking_lot::Mutex;
-
-pub use log::*;
 
 /// configuration options for the logger.
 #[derive(Debug, Clone)]
@@ -85,123 +84,146 @@ impl LoggerOptions {
     }
 }
 
-/// a simple logger implementation.
-pub struct Logger {
-    writer: Option<Mutex<LineWriter<File>>>,
+/// initializes the logger.
+/// should only be called once.
+pub fn init(options: LoggerOptions) -> std::io::Result<()> {
+    let file = match &options.file {
+        Some(path) => Some(LineWriter::new(
+            OpenOptions::new()
+                .create(true)
+                .truncate(options.truncate)
+                .open(path)?,
+        )),
+        None => None,
+    };
+
+    LOGGER.get_or_init(|| Mutex::new(Logger { file, options }));
+
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub enum Level {
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+impl std::fmt::Display for Level {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Debug => "DEBUG",
+                Self::Info => "INFO",
+                Self::Warn => "WARN",
+                Self::Error => "ERROR",
+            }
+        )
+    }
+}
+
+#[macro_export]
+macro_rules! log {
+    ($level:expr, $($args:tt)+) => {
+        $crate::log(
+            $level,
+            $crate::Location {
+                module: module_path!(),
+                file: file!(),
+                line: line!(),
+            },
+            format_args!($($args)+),
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($($args:tt)+) => {
+        $crate::log!($crate::Level::Debug, $($args)+)
+    };
+}
+
+#[macro_export]
+macro_rules! info {
+    ($($args:tt)+) => {
+        $crate::log!($crate::Level::Info, $($args)+)
+    };
+}
+
+#[macro_export]
+macro_rules! warn {
+    ($($args:tt)+) => {
+        $crate::log!($crate::Level::Warn, $($args)+)
+    };
+}
+
+#[macro_export]
+macro_rules! error {
+    ($($args:tt)+) => {
+        $crate::log!($crate::Level::Error, $($args)+)
+    };
+}
+
+pub struct Location {
+    pub module: &'static str,
+    pub file: &'static str,
+    pub line: u32,
+}
+
+struct Record<'a> {
+    level: Level,
+    location: Location,
+    args: Arguments<'a>,
+}
+
+pub fn log(level: Level, location: Location, args: Arguments) {
+    if let Some(logger) = LOGGER.get() {
+        logger.lock().log(Record {
+            level,
+            location,
+            args,
+        });
+    }
+}
+
+static LOGGER: OnceLock<Mutex<Logger>> = OnceLock::new();
+
+struct Logger {
+    file: Option<LineWriter<File>>,
     options: LoggerOptions,
 }
 
 impl Logger {
-    /// installs the logger globally.
-    pub fn install(options: LoggerOptions) {
-        Self::new(options)
-            .expect("Failed to create logger")
-            .init()
-            .expect("Failed to install logger");
-    }
-
-    /// creates a new logger instance.
-    pub fn new(mut options: LoggerOptions) -> io::Result<Self> {
-        if let Ok(level_env) = std::env::var("RUST_LOG")
-            && let Ok(level) = Level::from_str(&level_env)
-        {
-            options.level = level;
-        }
-
-        let writer = if let Some(file_path) = &options.file {
-            let log_path = if file_path.is_absolute() {
-                file_path
-            } else {
-                let exe_path = std::env::current_exe()?;
-                let exe_parent = exe_path
-                    .parent()
-                    .ok_or_else(|| io::Error::other("Executable path has no parent directory"))?;
-
-                let file_name = file_path
-                    .file_name()
-                    .ok_or_else(|| io::Error::other("Invalid file path"))?;
-
-                &exe_parent.join(file_name)
-            };
-
-            let file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .truncate(options.truncate)
-                .append(!options.truncate)
-                .open(log_path)?;
-
-            Some(Mutex::new(LineWriter::new(file)))
-        } else {
-            None
-        };
-
-        Ok(Self { writer, options })
-    }
-
-    /// initializes the logger.
-    pub fn init(self) -> Result<(), SetLoggerError> {
-        let max_level = self.options.level.to_level_filter();
-        set_boxed_logger(Box::new(self))?;
-        set_max_level(max_level);
-        Ok(())
-    }
-
-    fn write_log(&self, record: &Record) {
-        if let Some(module) = &self.options.module
-            && let Some(rec_module) = record.module_path()
-            && !rec_module.starts_with(module)
-        {
-            return;
+    fn log(&mut self, record: Record) {
+        if let Some(file) = &mut self.file {
+            Self::log_dispatch(file, &record, self.options.debug);
         }
 
         if self.options.stdout {
-            let stdout = io::stdout();
-            let mut handle = stdout.lock();
-            self.write(record, &mut handle);
-        }
-
-        if let Some(writer) = &self.writer {
-            let mut writer = writer.lock();
-            self.write(record, &mut *writer);
+            Self::log_dispatch(&mut std::io::stdout().lock(), &record, self.options.debug);
         }
     }
 
-    fn write(&self, record: &Record, writer: &mut impl Write) {
-        let _ = if self.options.debug {
-            if let (Some(file), Some(line)) = (record.file(), record.line()) {
-                writeln!(
-                    writer,
-                    "[{}] [{}:{}] {}",
-                    record.level(),
-                    file,
-                    line,
-                    record.args()
-                )
-            } else {
-                writeln!(writer, "[{}] {}", record.level(), record.args())
-            }
-        } else {
-            writeln!(writer, "[{}] {}", record.level(), record.args())
-        };
-    }
-}
-
-impl Log for Logger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= self.options.level
-    }
-
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            self.write_log(record);
+    fn log_dispatch(writer: &mut impl Write, record: &Record, debug: bool) {
+        match debug {
+            true => Self::log_debug(writer, record),
+            false => Self::log_no_debug(writer, record),
         }
     }
 
-    fn flush(&self) {
-        if let Some(writer) = &self.writer {
-            let _ = writer.lock().flush();
-        }
-        let _ = io::stdout().flush();
+    fn log_debug(writer: &mut impl Write, record: &Record) {
+        let _ = writeln!(
+            writer,
+            "[{}] [{}:{}] {}",
+            record.level, record.location.file, record.location.line, record.args
+        );
+    }
+
+    fn log_no_debug(writer: &mut impl Write, record: &Record) {
+        let _ = writeln!(writer, "[{}] {}", record.level, record.args);
     }
 }
