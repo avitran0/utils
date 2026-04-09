@@ -1,3 +1,5 @@
+//! convenient access to system paths
+
 use std::{env, ffi::OsString, path::PathBuf};
 
 pub fn home() -> Option<PathBuf> {
