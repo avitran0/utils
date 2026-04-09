@@ -68,7 +68,7 @@ mod test {
     type IntChannel = Channel<i32, i32>;
 
     #[test]
-    fn test_channel_send_receive() {
+    fn send_receive() {
         let (left, right) = IntChannel::new();
 
         let handle = std::thread::spawn(move || {
@@ -83,7 +83,7 @@ mod test {
     }
 
     #[test]
-    fn test_channel_timeout() {
+    fn timeout() {
         let (left, right) = IntChannel::new();
 
         assert_eq!(
@@ -96,7 +96,7 @@ mod test {
     }
 
     #[test]
-    fn test_channel_try_receive() {
+    fn try_receive() {
         let (left, right) = IntChannel::new();
 
         assert_eq!(left.try_receive(), Err(TryRecvError::Empty));
@@ -106,7 +106,7 @@ mod test {
     }
 
     #[test]
-    fn test_channel_multiple_messages() {
+    fn multiple_messages() {
         let (left, right) = IntChannel::new();
 
         std::thread::spawn(move || {
@@ -116,6 +116,21 @@ mod test {
         });
 
         for i in 0..5 {
+            assert_eq!(left.receive().unwrap(), i);
+        }
+    }
+
+    #[test]
+    fn batch() {
+        let (left, right) = IntChannel::new();
+
+        const MESSAGES: [i32; 5] = [0, 1, 2, 3, 4];
+
+        std::thread::spawn(move || {
+            assert_eq!(right.send_batch(MESSAGES), Ok(()));
+        });
+
+        for i in MESSAGES {
             assert_eq!(left.receive().unwrap(), i);
         }
     }
