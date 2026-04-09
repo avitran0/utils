@@ -238,7 +238,7 @@ mod test {
         assert_eq!(bitset.into_bytes(), vec![0b0000_0101, 0b0000_0010]);
     }
 
-     #[test]
+    #[test]
     fn trait_conversions() {
         let bitset = DynamicBitSet::from([0b0000_0101, 0b0000_0010]);
 

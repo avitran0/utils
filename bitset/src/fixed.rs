@@ -147,137 +147,68 @@ impl<const BYTES: usize> From<BitSet<BYTES>> for [u8; BYTES] {
     }
 }
 
-impl<const BYTES: usize> BitAnd for BitSet<BYTES> {
-    type Output = Self;
+macro_rules! impl_bitwise_op {
+    ($op:ident, $op_assign:ident, $method:ident, $method_assign:ident, $op_fn:expr) => {
+        impl<const BYTES: usize> $op for BitSet<BYTES> {
+            type Output = Self;
+            fn $method(self, rhs: Self) -> Self::Output {
+                Self(bitwise_binary_array(&self.0, &rhs.0, $op_fn))
+            }
+        }
 
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self::and(&self, &rhs)
-    }
+        impl<const BYTES: usize> $op<&BitSet<BYTES>> for BitSet<BYTES> {
+            type Output = Self;
+            fn $method(self, rhs: &Self) -> Self::Output {
+                Self(bitwise_binary_array(&self.0, &rhs.0, $op_fn))
+            }
+        }
+
+        impl<const BYTES: usize> $op<BitSet<BYTES>> for &BitSet<BYTES> {
+            type Output = BitSet<BYTES>;
+            fn $method(self, rhs: BitSet<BYTES>) -> Self::Output {
+                BitSet(bitwise_binary_array(&self.0, &rhs.0, $op_fn))
+            }
+        }
+
+        impl<const BYTES: usize> $op for &BitSet<BYTES> {
+            type Output = BitSet<BYTES>;
+            fn $method(self, rhs: Self) -> Self::Output {
+                BitSet(bitwise_binary_array(&self.0, &rhs.0, $op_fn))
+            }
+        }
+
+        impl<const BYTES: usize> $op_assign<&Self> for BitSet<BYTES> {
+            fn $method_assign(&mut self, rhs: &Self) {
+                *self = Self(bitwise_binary_array(&self.0, &rhs.0, $op_fn));
+            }
+        }
+
+        impl<const BYTES: usize> $op_assign for BitSet<BYTES> {
+            fn $method_assign(&mut self, rhs: Self) {
+                *self = Self(bitwise_binary_array(&self.0, &rhs.0, $op_fn));
+            }
+        }
+    };
 }
 
-impl<const BYTES: usize> BitAnd<&BitSet<BYTES>> for BitSet<BYTES> {
-    type Output = Self;
+impl_bitwise_op!(
+    BitAnd,
+    BitAndAssign,
+    bitand,
+    bitand_assign,
+    |left, right| left & right
+);
 
-    fn bitand(self, rhs: &Self) -> Self::Output {
-        Self::and(&self, rhs)
-    }
-}
+impl_bitwise_op!(BitOr, BitOrAssign, bitor, bitor_assign, |left, right| left
+    | right);
 
-impl<const BYTES: usize> BitAnd<BitSet<BYTES>> for &BitSet<BYTES> {
-    type Output = BitSet<BYTES>;
-
-    fn bitand(self, rhs: BitSet<BYTES>) -> Self::Output {
-        BitSet::and(self, &rhs)
-    }
-}
-
-impl<const BYTES: usize> BitAnd for &BitSet<BYTES> {
-    type Output = BitSet<BYTES>;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        BitSet::and(self, rhs)
-    }
-}
-
-impl<const BYTES: usize> BitAndAssign<&Self> for BitSet<BYTES> {
-    fn bitand_assign(&mut self, rhs: &Self) {
-        *self = Self::and(self, rhs);
-    }
-}
-
-impl<const BYTES: usize> BitAndAssign for BitSet<BYTES> {
-    fn bitand_assign(&mut self, rhs: Self) {
-        *self &= &rhs;
-    }
-}
-
-impl<const BYTES: usize> BitOr for BitSet<BYTES> {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Self::or(&self, &rhs)
-    }
-}
-
-impl<const BYTES: usize> BitOr<&BitSet<BYTES>> for BitSet<BYTES> {
-    type Output = Self;
-
-    fn bitor(self, rhs: &Self) -> Self::Output {
-        Self::or(&self, rhs)
-    }
-}
-
-impl<const BYTES: usize> BitOr<BitSet<BYTES>> for &BitSet<BYTES> {
-    type Output = BitSet<BYTES>;
-
-    fn bitor(self, rhs: BitSet<BYTES>) -> Self::Output {
-        BitSet::or(self, &rhs)
-    }
-}
-
-impl<const BYTES: usize> BitOr for &BitSet<BYTES> {
-    type Output = BitSet<BYTES>;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        BitSet::or(self, rhs)
-    }
-}
-
-impl<const BYTES: usize> BitOrAssign<&Self> for BitSet<BYTES> {
-    fn bitor_assign(&mut self, rhs: &Self) {
-        *self = Self::or(self, rhs);
-    }
-}
-
-impl<const BYTES: usize> BitOrAssign for BitSet<BYTES> {
-    fn bitor_assign(&mut self, rhs: Self) {
-        *self |= &rhs;
-    }
-}
-
-impl<const BYTES: usize> BitXor for BitSet<BYTES> {
-    type Output = Self;
-
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        Self::xor(&self, &rhs)
-    }
-}
-
-impl<const BYTES: usize> BitXor<&BitSet<BYTES>> for BitSet<BYTES> {
-    type Output = Self;
-
-    fn bitxor(self, rhs: &Self) -> Self::Output {
-        Self::xor(&self, rhs)
-    }
-}
-
-impl<const BYTES: usize> BitXor<BitSet<BYTES>> for &BitSet<BYTES> {
-    type Output = BitSet<BYTES>;
-
-    fn bitxor(self, rhs: BitSet<BYTES>) -> Self::Output {
-        BitSet::xor(self, &rhs)
-    }
-}
-
-impl<const BYTES: usize> BitXor for &BitSet<BYTES> {
-    type Output = BitSet<BYTES>;
-
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        BitSet::xor(self, rhs)
-    }
-}
-
-impl<const BYTES: usize> BitXorAssign<&Self> for BitSet<BYTES> {
-    fn bitxor_assign(&mut self, rhs: &Self) {
-        *self = Self::xor(self, rhs);
-    }
-}
-
-impl<const BYTES: usize> BitXorAssign for BitSet<BYTES> {
-    fn bitxor_assign(&mut self, rhs: Self) {
-        *self ^= &rhs;
-    }
-}
+impl_bitwise_op!(
+    BitXor,
+    BitXorAssign,
+    bitxor,
+    bitxor_assign,
+    |left, right| left ^ right
+);
 
 impl<const BYTES: usize> Not for BitSet<BYTES> {
     type Output = Self;
