@@ -80,7 +80,7 @@ pub fn init(options: LoggerOptions, func: LogFunction) -> std::io::Result<()> {
 
     LOGGER.get_or_init(|| {
         Mutex::new(Logger {
-            func: Box::new(func),
+            func,
             file,
             options,
         })
@@ -181,7 +181,7 @@ pub fn log(level: Level, location: Location, args: Arguments) {
 static LOGGER: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 struct Logger {
-    func: Box<LogFunction>,
+    func: LogFunction,
     file: Option<LineWriter<File>>,
     options: LoggerOptions,
 }
