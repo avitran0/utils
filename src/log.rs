@@ -103,7 +103,7 @@ pub fn init(options: LoggerOptions) -> std::io::Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Level {
     Debug,
     Info,
@@ -200,6 +200,10 @@ struct Logger {
 
 impl Logger {
     fn log(&mut self, record: Record) {
+        if record.level < self.options.level {
+            return;
+        }
+
         if let Some(file) = &mut self.file {
             Self::log_dispatch(file, &record, self.options.debug);
         }
