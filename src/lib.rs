@@ -15,7 +15,7 @@ pub mod io;
 #[cfg(feature = "log")]
 pub mod log;
 
-#[cfg(all(feature = "meta", target_os = "linux"))]
+#[cfg(all(feature = "meta", target_family = "unix"))]
 pub mod meta;
 
 #[cfg(all(feature = "path", target_os = "linux"))]
