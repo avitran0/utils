@@ -166,8 +166,7 @@ pub struct Record<'a> {
     pub args: Arguments<'a>,
 }
 
-/// a type alias for the log function that writes records to a writer.
-pub type LogFunction = fn(writer: &mut dyn Write, record: &Record);
+pub type LogFunction = fn(writer: &mut dyn Write, record: &Record) -> std::io::Result<()>;
 
 pub fn log(level: Level, location: Location, args: Arguments) {
     if let Some(logger) = LOGGER.get() {
@@ -194,11 +193,11 @@ impl Logger {
         }
 
         if let Some(file) = &mut self.file {
-            (self.func)(file, &record);
+            let _ = (self.func)(file, &record);
         }
 
         if self.options.stdout {
-            (self.func)(&mut std::io::stdout().lock(), &record);
+            let _ = (self.func)(&mut std::io::stdout().lock(), &record);
         }
     }
 }
