@@ -21,11 +21,8 @@ pub mod meta;
 #[cfg(all(feature = "path", target_os = "linux"))]
 pub mod path;
 
-/// re-exports synchronization primitives from `parking_lot`.
 #[cfg(feature = "sync")]
-pub mod sync {
-    pub use parking_lot::{Mutex, RwLock};
-}
+pub mod sync;
 
 pub const fn is_debug() -> bool {
     cfg!(debug_assertions)
