@@ -21,10 +21,6 @@ pub struct LoggerOptions {
     pub truncate: bool,
     /// whether to write logs to stdout.
     pub stdout: bool,
-    /// optional module prefix to filter logs.
-    pub module: Option<String>,
-    /// whether to include debug information (file/line) in logs.
-    pub debug: bool,
 }
 
 impl Default for LoggerOptions {
@@ -34,8 +30,6 @@ impl Default for LoggerOptions {
             file: None,
             truncate: false,
             stdout: true,
-            module: None,
-            debug: false,
         }
     }
 }
@@ -68,25 +62,11 @@ impl LoggerOptions {
         self.stdout = stdout;
         self
     }
-
-    /// sets a module filter.
-    #[must_use]
-    pub fn module(mut self, module: &str) -> Self {
-        self.module = Some(module.to_owned());
-        self
-    }
-
-    /// enables or disables debug mode.
-    #[must_use]
-    pub fn debug(mut self, debug: bool) -> Self {
-        self.debug = debug;
-        self
-    }
 }
 
 /// initializes the logger.
 /// should only be called once.
-pub fn init(options: LoggerOptions) -> std::io::Result<()> {
+pub fn init(options: LoggerOptions, func: LogFunction) -> std::io::Result<()> {
     let file = match &options.file {
         Some(path) => Some(LineWriter::new(
             OpenOptions::new()
@@ -98,7 +78,13 @@ pub fn init(options: LoggerOptions) -> std::io::Result<()> {
         None => None,
     };
 
-    LOGGER.get_or_init(|| Mutex::new(Logger { file, options }));
+    LOGGER.get_or_init(|| {
+        Mutex::new(Logger {
+            func: Box::new(func),
+            file,
+            options,
+        })
+    });
 
     Ok(())
 }
@@ -132,7 +118,6 @@ macro_rules! log {
         $crate::log::log(
             $level,
             $crate::log::Location {
-                module: module_path!(),
                 file: file!(),
                 line: line!(),
             },
@@ -170,16 +155,19 @@ macro_rules! error {
 }
 
 pub struct Location {
-    pub module: &'static str,
     pub file: &'static str,
     pub line: u32,
 }
 
-struct Record<'a> {
-    level: Level,
-    location: Location,
-    args: Arguments<'a>,
+/// a log record containing level, location, and formatted arguments.
+pub struct Record<'a> {
+    pub level: Level,
+    pub location: Location,
+    pub args: Arguments<'a>,
 }
+
+/// a type alias for the log function that writes records to a writer.
+pub type LogFunction = fn(writer: &mut dyn Write, record: &Record);
 
 pub fn log(level: Level, location: Location, args: Arguments) {
     if let Some(logger) = LOGGER.get() {
@@ -194,6 +182,7 @@ pub fn log(level: Level, location: Location, args: Arguments) {
 static LOGGER: OnceLock<Mutex<Logger>> = OnceLock::new();
 
 struct Logger {
+    func: Box<LogFunction>,
     file: Option<LineWriter<File>>,
     options: LoggerOptions,
 }
@@ -205,30 +194,11 @@ impl Logger {
         }
 
         if let Some(file) = &mut self.file {
-            Self::log_dispatch(file, &record, self.options.debug);
+            (self.func)(file, &record);
         }
 
         if self.options.stdout {
-            Self::log_dispatch(&mut std::io::stdout().lock(), &record, self.options.debug);
+            (self.func)(&mut std::io::stdout().lock(), &record);
         }
-    }
-
-    fn log_dispatch(writer: &mut impl Write, record: &Record, debug: bool) {
-        match debug {
-            true => Self::log_debug(writer, record),
-            false => Self::log_no_debug(writer, record),
-        }
-    }
-
-    fn log_debug(writer: &mut impl Write, record: &Record) {
-        let _ = writeln!(
-            writer,
-            "[{}] [{}:{}] {}",
-            record.level, record.location.file, record.location.line, record.args
-        );
-    }
-
-    fn log_no_debug(writer: &mut impl Write, record: &Record) {
-        let _ = writeln!(writer, "[{}] {}", record.level, record.args);
     }
 }
