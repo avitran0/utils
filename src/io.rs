@@ -106,6 +106,13 @@ pub trait ReadBytes: std::io::Read {
         Ok(buf)
     }
 
+    #[inline]
+    fn read_array<const BYTES: usize>(&mut self) -> Result<[u8; BYTES]> {
+        let mut buf = [0; BYTES];
+        self.read_exact(&mut buf)?;
+        Ok(buf)
+    }
+
     /// reads a value by copying its raw in-memory bytes.
     ///
     /// this is only sound for plain-old-data layouts with no invalid bit patterns,
