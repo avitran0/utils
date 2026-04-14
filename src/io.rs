@@ -98,6 +98,23 @@ pub trait ReadBytes: std::io::Read {
     impl_read_method!(read_f64, f64);
     impl_read_endian_method!(read_f64_endian, f64);
 
+    /// protobuf varint
+    #[inline]
+    fn read_varint(&mut self) -> Result<u64> {
+        let mut value: u64 = 0;
+
+        // maximum of 10 bytes
+        for i in 0..10 {
+            let byte = self.read_u8()? as u64;
+            value |= (byte & 127) << (7 * i);
+            if byte & 0x80 == 0 {
+                return Ok(value);
+            }
+        }
+
+        Err(std::io::Error::other("Varint too long"))
+    }
+
     /// reads exactly `count` bytes.
     #[inline]
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>> {
