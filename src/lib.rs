@@ -9,6 +9,9 @@ pub mod channel;
 #[cfg(feature = "future")]
 pub mod future;
 
+#[cfg(feature = "id")]
+pub mod id;
+
 #[cfg(feature = "io")]
 pub mod io;
 
